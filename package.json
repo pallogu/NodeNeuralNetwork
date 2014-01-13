@@ -1,0 +1,31 @@
+{
+  "name": "neural_network",
+  "version": "0.0.1",
+  "description": "Neural network implementation with backpropagation. It uses map reduce to distribute the computation of cost function and it's gradients. It also implements stochastic/step/batch gradient descent for optimizing cost function",
+  "main": "index.js",
+  "dependencies": {
+    "compute-cluster": "~0.0.7",
+    "numeric": "~1.2.6"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/pallogu/NodeNeuralNetwork.git"
+  },
+  "keywords": [
+    "nodejs",
+    "neural",
+    "network",
+    "big",
+    "data"
+  ],
+  "author": "Paul Gustafik",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/pallogu/NodeNeuralNetwork/issues"
+  },
+  "homepage": "https://github.com/pallogu/NodeNeuralNetwork"
+}
