@@ -1,11 +1,17 @@
 var _ = require('underscore');
 var numeric = require('numeric');
 var os = require('os');
-const computecluster = require('compute-cluster');
-var cc = new computecluster({
-    module: './modules/neuralNetworkWorker.js'
+
+
+const ComputeCluster = require('compute-cluster');
+var computeCluster = new ComputeCluster({
+    module: './helpers/neuralNetworkWorker.js'
 });
+
+
 var model = [];
+
+var shuffler = require('./helpers/shuffler.js');
 
 
 var Neural_Network = function () {};
@@ -23,64 +29,66 @@ _.extend(Neural_Network.prototype, {
        var maxCostError = options.maxCost || 0.01;
        var gradientDescentAlpha = options.gradientDescentAlpha || 1;
 
-       var stepCounter = 0;
-
-
+       var numberOfProcessedExamples = 0;
        var initialThetaVec = numeric.sub(numeric.random([1, (numberOfFeatures + 1) * numberOfActivationUnitsL1 + (numberOfActivationUnitsL1 + 1) * numberOfActivationUnitsL2 + numberOfActivationUnitsL2 + 1])[0], 0.5);
 
 
-       var computeBatchStep = function() {
-           var counter = numberOfNodes;
-           var gradSum = numeric.rep([initialThetaVec.length],0);
+       var processTrainingExamples = function() {
+           var trainingRegressionCounter = numberOfNodes;
+           var sumOfGradientsFromNodes = numeric.rep([initialThetaVec.length],0);
 
            for (var k = 0; k < numberOfNodes; k++) {
 
-               cc.enqueue({
+               computeCluster.enqueue({
                    numberOfFeatures: numberOfFeatures,
                    numberOfActivationUnitsL1: numberOfActivationUnitsL1,
                    numberOfActivationUnitsL2: numberOfActivationUnitsL2,
                    ThetaVec: initialThetaVec,
-                   X: trainingSetX.slice(stepCounter + numberOfExamplesPerNode*k, stepCounter + numberOfExamplesPerNode*k + numberOfExamplesPerNode),
-                   Y: trainingSetY.slice(stepCounter + numberOfExamplesPerNode*k, stepCounter + numberOfExamplesPerNode*k + numberOfExamplesPerNode)
+                   X: trainingSetX.slice(numberOfProcessedExamples + numberOfExamplesPerNode*k, numberOfProcessedExamples + numberOfExamplesPerNode*k + numberOfExamplesPerNode),
+                   Y: trainingSetY.slice(numberOfProcessedExamples + numberOfExamplesPerNode*k, numberOfProcessedExamples + numberOfExamplesPerNode*k + numberOfExamplesPerNode)
 
-               }, function (err, r) {
-                   gradSum = numeric.add(gradSum, r[1]);
-                   console.log('cost', r[0]);
+               }, function (err, nnTrainingCoreResult) {
 
-                   if (--counter === 0) {
-                       stepCounter = stepCounter + numberOfExamplesPerNode*numberOfCpus;
-                       initialThetaVec = numeric.sub(initialThetaVec,  numeric.mul(gradientDescentAlpha/numberOfNodes, gradSum));
+                   sumOfGradientsFromNodes = numeric.add(sumOfGradientsFromNodes, nnTrainingCoreResult[1]);
 
-                       if(stepCounter < trainingSet.length - numberOfExamplesPerNode*numberOfNodes) {
-                           computeBatchStep();
+                   console.log('cost', nnTrainingCoreResult[0]);
+
+                   if (--trainingRegressionCounter === 0) {
+
+                       numberOfProcessedExamples = numberOfProcessedExamples + numberOfExamplesPerNode*numberOfNodes;
+
+                       initialThetaVec = numeric.sub(initialThetaVec,  numeric.mul(gradientDescentAlpha/numberOfNodes, sumOfGradientsFromNodes));
+
+                       if(numberOfProcessedExamples < trainingSetX.length - numberOfExamplesPerNode*numberOfNodes) {
+
+                           processTrainingExamples();
+
                        } else {
-                           if(r[0] < maxCostError) {
+                           if(nnTrainingCoreResult[0] < maxCostError) {
+
                                console.log('finished');
                                model = initialThetaVec;
+
                            } else {
 
                                reshuffledTrainingSet = shuffler.reshuffle(numeric.clone(trainingSetX), numeric.clone(trainingSetY));
 
                                trainingSetX = reshuffledTrainingSet[0];
                                trainingSetY = reshuffledTrainingSet[1];
-                               stepCounter = 0;
 
-                               computeBatchStep();
+                               numberOfProcessedExamples = 0;
+
+                               processTrainingExamples();
                            }
                        }
                    }
-
                });
-
            }
        };
 
-       computeBatchStep();
+       processTrainingExamples();
    },
    predict: function () {
-
-   },
-   computeNumericGradientDelta: function () {]
 
    }
 });
