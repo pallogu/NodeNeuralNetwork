@@ -5,92 +5,118 @@ var os = require('os');
 
 const ComputeCluster = require('compute-cluster');
 var computeCluster = new ComputeCluster({
-    module: './helpers/neuralNetworkWorker.js'
+    module: './helpers/neural_network.helper.js'
 });
 
 
-var model = [];
-
 var shuffler = require('./helpers/shuffler.js');
 
+var model = [];
 
-var Neural_Network = function () {};
+var numberOfFeatures;
+var numberOfActivationUnitsL1;
+var numberOfActivationUnitsL2;
+
+var Neural_Network = function () {
+};
 
 _.extend(Neural_Network.prototype, {
-   train: function (options) {
+    train: function (options, callback) {
+        var that = this;
 
-       var trainingSetX = options.trainingSetX;
-       var trainingSetY = options.trainingSetY;
-       var numberOfNodes = options.numberOfNodes || os.cpus.length;
-       var numberOfExamplesPerNode = options.numberOfExamplesPerNode || 1;
-       var numberOfFeatures = trainingSetX[0][0].length
-       var numberOfActivationUnitsL1 = options.numberOfActivationUnitsL1;
-       var numberOfActivationUnitsL2 = options.numberOfActivationUnitsL2;
-       var maxCostError = options.maxCost || 0.01;
-       var gradientDescentAlpha = options.gradientDescentAlpha || 1;
+        var trainingSetX = options.trainingSetX;
+        var trainingSetY = options.trainingSetY;
+        var numberOfNodes = options.numberOfNodes || os.cpus.length;
+        var numberOfExamplesPerNode = options.numberOfExamplesPerNode || 1;
+        var maxCostError = options.maxCostError || 0.01;
+        var learningRate = options.learningRate || 1;
+        var maxNoOfIterations = options.maxNoOfIterations || Number.MAX_VALUE;
+        var numberOfProcessedExamples = 0;
+        var numberOfOptimizingIterations = 0;
+        var initialThetaVec = [];
 
-       var numberOfProcessedExamples = 0;
-       var initialThetaVec = numeric.sub(numeric.random([1, (numberOfFeatures + 1) * numberOfActivationUnitsL1 + (numberOfActivationUnitsL1 + 1) * numberOfActivationUnitsL2 + numberOfActivationUnitsL2 + 1])[0], 0.5);
+        numberOfFeatures = trainingSetX[0].length
+        numberOfActivationUnitsL1 = options.numberOfActivationUnitsL1;
+        numberOfActivationUnitsL2 = options.numberOfActivationUnitsL2;
+        initialThetaVec = numeric.sub(numeric.random([1, (numberOfFeatures + 1) * numberOfActivationUnitsL1 + (numberOfActivationUnitsL1 + 1) * numberOfActivationUnitsL2 + numberOfActivationUnitsL2 + 1])[0], 0.5);
 
+        console.time('Time required to train:');
 
-       var processTrainingExamples = function() {
-           var trainingRegressionCounter = numberOfNodes;
-           var sumOfGradientsFromNodes = numeric.rep([initialThetaVec.length],0);
+        var processTrainingExamples = function () {
+            var trainingRegressionCounter = numberOfNodes;
+            var sumOfGradientsFromNodes = numeric.rep([initialThetaVec.length], 0);
 
-           for (var k = 0; k < numberOfNodes; k++) {
+            for (var k = 0; k < numberOfNodes; k++) {
 
-               computeCluster.enqueue({
-                   numberOfFeatures: numberOfFeatures,
-                   numberOfActivationUnitsL1: numberOfActivationUnitsL1,
-                   numberOfActivationUnitsL2: numberOfActivationUnitsL2,
-                   ThetaVec: initialThetaVec,
-                   X: trainingSetX.slice(numberOfProcessedExamples + numberOfExamplesPerNode*k, numberOfProcessedExamples + numberOfExamplesPerNode*k + numberOfExamplesPerNode),
-                   Y: trainingSetY.slice(numberOfProcessedExamples + numberOfExamplesPerNode*k, numberOfProcessedExamples + numberOfExamplesPerNode*k + numberOfExamplesPerNode)
+                computeCluster.enqueue({
+                    numberOfFeatures: numberOfFeatures,
+                    numberOfActivationUnitsL1: numberOfActivationUnitsL1,
+                    numberOfActivationUnitsL2: numberOfActivationUnitsL2,
+                    ThetaVec: initialThetaVec,
+                    X: trainingSetX.slice(numberOfProcessedExamples + numberOfExamplesPerNode * k, numberOfProcessedExamples + numberOfExamplesPerNode * k + numberOfExamplesPerNode),
+                    Y: trainingSetY.slice(numberOfProcessedExamples + numberOfExamplesPerNode * k, numberOfProcessedExamples + numberOfExamplesPerNode * k + numberOfExamplesPerNode)
 
-               }, function (err, nnTrainingCoreResult) {
+                }, function (err, nnTrainingCoreResult) {
 
-                   sumOfGradientsFromNodes = numeric.add(sumOfGradientsFromNodes, nnTrainingCoreResult[1]);
+                    sumOfGradientsFromNodes = numeric.add(sumOfGradientsFromNodes, nnTrainingCoreResult[1]);
 
-                   console.log('cost', nnTrainingCoreResult[0]);
+                    //console.log('cost', nnTrainingCoreResult[0]);
 
-                   if (--trainingRegressionCounter === 0) {
+                    if (--trainingRegressionCounter === 0) {
 
-                       numberOfProcessedExamples = numberOfProcessedExamples + numberOfExamplesPerNode*numberOfNodes;
+                        numberOfProcessedExamples = numberOfProcessedExamples + numberOfExamplesPerNode * numberOfNodes;
 
-                       initialThetaVec = numeric.sub(initialThetaVec,  numeric.mul(gradientDescentAlpha/numberOfNodes, sumOfGradientsFromNodes));
+                        initialThetaVec = numeric.sub(initialThetaVec, numeric.mul(learningRate / numberOfNodes, sumOfGradientsFromNodes));
 
-                       if(numberOfProcessedExamples < trainingSetX.length - numberOfExamplesPerNode*numberOfNodes) {
+                        if (numberOfProcessedExamples < trainingSetX.length - numberOfExamplesPerNode * numberOfNodes) {
 
-                           processTrainingExamples();
+                            processTrainingExamples();
 
-                       } else {
-                           if(nnTrainingCoreResult[0] < maxCostError) {
+                        } else {
+                            ++numberOfOptimizingIterations;
 
-                               console.log('finished');
-                               model = initialThetaVec;
+                            if (nnTrainingCoreResult[0] < maxCostError || numberOfOptimizingIterations > maxNoOfIterations) {
 
-                           } else {
+                                console.log('finished', nnTrainingCoreResult[0]);
+                                console.timeEnd('Time required to train:');
 
-                               reshuffledTrainingSet = shuffler.reshuffle(numeric.clone(trainingSetX), numeric.clone(trainingSetY));
+                                model = initialThetaVec;
 
-                               trainingSetX = reshuffledTrainingSet[0];
-                               trainingSetY = reshuffledTrainingSet[1];
+                                callback.call(that, err, model);
 
-                               numberOfProcessedExamples = 0;
+                            } else {
 
-                               processTrainingExamples();
-                           }
-                       }
-                   }
-               });
-           }
-       };
+                                reshuffledTrainingSet = shuffler.reshuffle(numeric.clone(trainingSetX), numeric.clone(trainingSetY));
 
-       processTrainingExamples();
-   },
-   predict: function () {
+                                trainingSetX = reshuffledTrainingSet[0];
+                                trainingSetY = reshuffledTrainingSet[1];
 
-   }
+                                numberOfProcessedExamples = 0;
+
+                                processTrainingExamples();
+                            }
+                        }
+                    }
+                });
+            }
+        };
+
+        processTrainingExamples();
+    },
+    predict: function (X, callback) {
+        var that = this;
+        computeCluster.enqueue({
+            numberOfFeatures: numberOfFeatures,
+            numberOfActivationUnitsL1: numberOfActivationUnitsL1,
+            numberOfActivationUnitsL2: numberOfActivationUnitsL2,
+            ThetaVec: model,
+            X: [X],
+            Y: [[0]]
+
+        }, function (err, nnTrainingCoreResult) {
+            callback.call(that, err, nnTrainingCoreResult[2][0]);
+        });
+    }
 });
 
 module.exports = Neural_Network;
