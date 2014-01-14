@@ -3,7 +3,7 @@
     "version": "0.1.1",
     "description": "Neural network implementation with backpropagation. It uses map reduce to distribute the computation of cost function and it's gradients. It also implements stochastic/step/batch gradient descent for optimizing cost function",
     "main": "neural_network.js",
-    "files": ["helpers"],
+    "files": ["neural_network.js","helpers"],
     "dependencies": {
         "compute-cluster": "~0.0.7",
         "numeric": "~1.2.6",

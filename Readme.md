@@ -2,7 +2,7 @@
 ##Description
 This is a nodejs implementation of dense neural network with two hidden layer and one category output layer.
 
-It uses [compute cluster](https://github.com/lloyd/node-compute-cluster) for splitting the work into multiple cores and [numeric](http://www.numericjs.com/documentation.html) for linear algebra computations - basically verctorized implementation.
+It uses [compute cluster](https://github.com/lloyd/node-compute-cluster) for splitting the work into multiple cores and [numeric](http://www.numericjs.com/documentation.html) for linear algebra computations - basically vectorized implementation.
 
 For cost function optimisation, one can use batch/mini-batches/stochastic gradient descent.
 
@@ -10,7 +10,7 @@ For mini-batches and stochastic gradient descent it randomises training examples
 
 ##Instalation
 
-Install from commnad line
+Install from command line
 
 `$ npm install neural_network`
 
@@ -62,11 +62,11 @@ Setup takes following required parameters
 
 Following parameters are optional
 
-* numberOfNodes: Used for map raduce
+* numberOfNodes: Used for map reduce
 * numberOfExamplesPerNode
 * learningRate: This number is used in gradient descent
 * maxCostError: This parameter is used to stop training. If the value of cost function is less than maxCostError callback will be called
-* maxNoOfIterations: This paramter is used to stop training. The default value is Number.MAX_VALUE. 
+* maxNoOfIterations: This parameter is used to stop training. The default value is Number.MAX_VALUE.
 
 ### Stochastic gradient descent
 Set:
@@ -95,7 +95,7 @@ Set for example:
 
 ## Some implementation notes
 
-Neural network training uses matrixes and vectors and for computation uses numeric.js numerical library so please use it. In other words you have to find a balance between numberOfExamplesPerNode and numberOfNodes for mini batch gradient descent.
+Neural network training uses matrices and vectors and for computation uses numeric.js numerical library so please use it. In other words you have to find a balance between numberOfExamplesPerNode and numberOfNodes for mini batch gradient descent.
 
 ## Copyright
 
