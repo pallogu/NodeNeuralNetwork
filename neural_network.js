@@ -37,13 +37,11 @@ _.extend(Neural_Network.prototype, {
         var maxNoOfIterations = options.maxNoOfIterations || Number.MAX_VALUE;
         var numberOfProcessedExamples = 0;
         var numberOfOptimizingIterations = 0;
-        var initialThetaVec = [];
+        var initialThetaVec = options.model || numeric.sub(numeric.random([1, (numberOfFeatures + 1) * numberOfActivationUnitsL1 + (numberOfActivationUnitsL1 + 1) * numberOfActivationUnitsL2 + numberOfActivationUnitsL2 + 1])[0], 0.5);
 
         numberOfFeatures = trainingSetX[0].length
         numberOfActivationUnitsL1 = options.numberOfActivationUnitsL1;
         numberOfActivationUnitsL2 = options.numberOfActivationUnitsL2;
-        initialThetaVec = numeric.sub(numeric.random([1, (numberOfFeatures + 1) * numberOfActivationUnitsL1 + (numberOfActivationUnitsL1 + 1) * numberOfActivationUnitsL2 + numberOfActivationUnitsL2 + 1])[0], 0.5);
-
         console.time('Time required to train:');
 
         var processTrainingExamples = function () {

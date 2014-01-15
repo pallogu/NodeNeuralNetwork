@@ -67,7 +67,12 @@ Following parameters are optional
 * numberOfExamplesPerNode
 * learningRate: This number is used in gradient descent
 * maxCostError: This parameter is used to stop training. If the value of cost function is less than maxCostError callback will be called
-* maxNoOfIterations: This parameter is used to stop training. The default value is Number.MAX_VALUE.
+* maxNoOfIterations: This parameter is used to stop training. The default value is Number.MAX_VALUE
+* model: This is the starting point for gradient descent optimisation. If you do not provide this one will be randomly generated. This is useful if you already have a model and want to adjust it by new examples. The *train* method calls the callback with trained model as parameter.
+
+
+
+##Optimisation
 
 ### Stochastic gradient descent
 Set:
