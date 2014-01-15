@@ -37,11 +37,14 @@ _.extend(Neural_Network.prototype, {
         var maxNoOfIterations = options.maxNoOfIterations || Number.MAX_VALUE;
         var numberOfProcessedExamples = 0;
         var numberOfOptimizingIterations = 0;
-        var initialThetaVec = options.model || numeric.sub(numeric.random([1, (numberOfFeatures + 1) * numberOfActivationUnitsL1 + (numberOfActivationUnitsL1 + 1) * numberOfActivationUnitsL2 + numberOfActivationUnitsL2 + 1])[0], 0.5);
+        var outputCounter = 0;
 
         numberOfFeatures = trainingSetX[0].length
         numberOfActivationUnitsL1 = options.numberOfActivationUnitsL1;
         numberOfActivationUnitsL2 = options.numberOfActivationUnitsL2;
+
+        var initialThetaVec = options.model || numeric.sub(numeric.random([1, (numberOfFeatures + 1) * numberOfActivationUnitsL1 + (numberOfActivationUnitsL1 + 1) * numberOfActivationUnitsL2 + numberOfActivationUnitsL2 + 1])[0], 0.5);
+
         console.time('Time required to train:');
 
         var processTrainingExamples = function () {
@@ -76,7 +79,11 @@ _.extend(Neural_Network.prototype, {
 
                         } else {
                             ++numberOfOptimizingIterations;
-                            //console.log('Number of optimizing iterations: %s, current cost: %s', numberOfOptimizingIterations, nnTrainingCoreResult[0]);
+
+                            if(String(numberOfOptimizingIterations).charAt(0) != outputCounter) {
+                                console.log('Number of optimizing iterations: %s, current cost: %s', numberOfOptimizingIterations, nnTrainingCoreResult[0]);
+                                outputCounter = 1*String(numberOfOptimizingIterations).charAt(0);
+                            }
 
                             if (nnTrainingCoreResult[0] < maxCostError || numberOfOptimizingIterations > maxNoOfIterations) {
 
