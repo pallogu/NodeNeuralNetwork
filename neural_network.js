@@ -22,6 +22,9 @@ var Neural_Network = function () {
 };
 
 _.extend(Neural_Network.prototype, {
+    exit: function (){
+        computeCluster.exit();
+    },
     train: function (options, callback) {
         var that = this;
 
@@ -75,10 +78,11 @@ _.extend(Neural_Network.prototype, {
 
                         } else {
                             ++numberOfOptimizingIterations;
+                            //console.log('Number of optimizing iterations: %s, current cost: %s', numberOfOptimizingIterations, nnTrainingCoreResult[0]);
 
                             if (nnTrainingCoreResult[0] < maxCostError || numberOfOptimizingIterations > maxNoOfIterations) {
 
-                                console.log('finished', nnTrainingCoreResult[0]);
+                                console.log('finished with final cost: ', nnTrainingCoreResult[0]);
                                 console.timeEnd('Time required to train:');
 
                                 model = initialThetaVec;

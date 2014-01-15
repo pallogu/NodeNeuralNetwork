@@ -48,6 +48,7 @@ Install from command line
 	nn.train(setup, function (err, model) {
 	    nn.predict([1,1], function (err, probability){
 	        console.log('probability that y would be 	positive', probability);
+	        nn.exit();
 	    });
 	});
 
