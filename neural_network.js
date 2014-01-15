@@ -1,11 +1,12 @@
 var _ = require('underscore');
 var numeric = require('numeric');
 var os = require('os');
+var path = require('path');
 
 
 const ComputeCluster = require('compute-cluster');
 var computeCluster = new ComputeCluster({
-    module: './helpers/neural_network.helper.js'
+    module: path.join(__dirname, 'helpers/neural_network.helper.js')
 });
 
 
