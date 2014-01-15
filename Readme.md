@@ -63,12 +63,13 @@ Setup takes following required parameters
 
 Following parameters are optional
 
-* numberOfNodes: Used for map reduce
-* numberOfExamplesPerNode
-* learningRate: This number is used in gradient descent
-* maxCostError: This parameter is used to stop training. If the value of cost function is less than maxCostError callback will be called
-* maxNoOfIterations: This parameter is used to stop training. The default value is Number.MAX_VALUE
-* model: This is the starting point for gradient descent optimisation. If you do not provide this one will be randomly generated. This is useful if you already have a model and want to adjust it by new examples. The *train* method calls the callback with trained model as parameter.
+* numberOfNodes: (int) Used for map reduce
+* numberOfExamplesPerNode: (int)
+* learningRate: (number) This number is used in gradient descent
+* maxCostError: (number) This parameter is used to stop training. If the value of cost function is less than maxCostError callback will be called
+* maxNoOfIterations: (int) This parameter is used to stop training. The default value is Number.MAX_VALUE
+* model: (array) This is the starting point for gradient descent optimisation. If you do not provide this one will be randomly generated. This is useful if you already have a model and want to adjust it by new examples. The *train* method calls the callback with trained model as parameter.
+* verboseMode: (boolean) If set to true it will report the progress of learning
 
 
 
