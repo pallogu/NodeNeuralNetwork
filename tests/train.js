@@ -30,23 +30,36 @@ var setup = {
 }
 
 nn.train(setup, function (err, model) {
+    var predictionCounter = 4;
+
+    var updatePredictionCounter = function () {
+        predictionCounter--;
+        if(predictionCounter === 0) {
+            nn.exit();
+        }
+    }
+
     nn.predict([0,0], function (err, probability){
         assert.equal(probability < 0.01, true);
         console.log('probability that [0,0] would be positive', probability);
+        updatePredictionCounter();
     });
 
     nn.predict([0,1], function (err, probability){
         assert.equal(probability > 0.99, true);
         console.log('probability that [0,1] would be positive', probability);
+        updatePredictionCounter();
     });
 
     nn.predict([1,0], function (err, probability){
         assert.equal(probability > 0.99, true);
         console.log('probability that [1,0] would be positive', probability);
+        updatePredictionCounter();
     });
 
     nn.predict([1,1], function (err, probability){
         assert.equal(probability < 0.01, true);
         console.log('probability that [1,1] would be positive', probability);
+        updatePredictionCounter();
     });
 });

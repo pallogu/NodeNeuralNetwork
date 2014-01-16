@@ -1,9 +1,12 @@
 var _ = require('underscore');
 var assert = require('assert');
 var numeric = require('numeric');
+
+var path = require('path');
+
 const ComputeCluster = require('compute-cluster');
 var computeCluster = new ComputeCluster({
-    module: '../helpers/neural_network.helper.js'
+    module: path.join(__dirname, '..', 'helpers/neural_network.helper.js')
 });
 
 var trainingSetInput = [
@@ -48,7 +51,7 @@ var computeDifferenceBetweenNumericlPartialDerivativeAndBackprop = function() {
                  computeDifferenceBetweenNumericlPartialDerivativeAndBackprop();
              } else {
                  assert.equal(errorSum < 1e-8, true);
-                 console.log('Sum of differences between numerical and back propagation gradients:', errorSum);
+                 console.log('Sum of differences between numerical and back propagation gradients: %s should be smaller than 1e-8 or such', errorSum);
                  computeCluster.exit();
              }
          }
