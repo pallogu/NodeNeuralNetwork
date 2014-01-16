@@ -19,14 +19,14 @@ Install from command line
 	var NeuralNetwork = require('neural_network');
 	var nn = new NeuralNetwork();
 	
-	var trainingSetX = [
+	var trainingSetInput = [
 	    [0,0],
 	    [0,1],
 	    [1,0],
 	    [1,1]
 	];
 	
-	var trainingSetY = [
+	var trainingSetOutput = [
 	    [0],
 	    [1],
     	[1],
@@ -34,8 +34,8 @@ Install from command line
 	];
 	
 	var setup = {
-	    trainingSetX: trainingSetX,
-	    trainingSetY: trainingSetY,
+	    trainingSetInput: trainingSetInput,
+	    trainingSetOutput: trainingSetOutput,
 	    numberOfActivationUnitsL1: 4,
 	    numberOfActivationUnitsL2: 4,
 	    numberOfNodes: 1,
