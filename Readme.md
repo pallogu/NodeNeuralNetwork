@@ -87,7 +87,7 @@ Set:
 
 	var os = require(os);
 	
-	numberOfNodes = os.cpus.length - 1;
+	numberOfNodes = os.cpus().length - 1;
 	numberOfExamples = Math.floor(trainingSetX.length / numberOfNodes);
 	
 ### Mini batch gradient descent
@@ -96,7 +96,7 @@ Set for example:
 
 	var os = require(os);
 	
-	numberOfNodes = os.cpus.length - 1;
+	numberOfNodes = os.cpus().length - 1;
 	numberOfExamples = 10;
 
 

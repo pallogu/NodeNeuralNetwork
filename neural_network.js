@@ -30,7 +30,7 @@ _.extend(Neural_Network.prototype, {
 
         var trainingSetInput = options.trainingSetInput;
         var trainingSetOutput = options.trainingSetOutput;
-        var numberOfNodes = options.numberOfNodes || os.cpus.length;
+        var numberOfNodes = options.numberOfNodes || os.cpus().length;
         var numberOfExamplesPerNode = options.numberOfExamplesPerNode || 1;
         var maxCostError = options.maxCostError || 0.01;
         var learningRate = options.learningRate || 1;
@@ -81,7 +81,7 @@ _.extend(Neural_Network.prototype, {
                         } else {
                             ++numberOfOptimizingIterations;
 
-                            if(verboseMode && String(numberOfOptimizingIterations).charAt(0) != outputCounter) {
+                            if(verboseMode && numberOfOptimizingIterations%1000 === 0) {
                                 console.log('Number of optimizing iterations: %s, current cost: %s', numberOfOptimizingIterations, nnTrainingCoreResult[0]);
                                 outputCounter = 1*String(numberOfOptimizingIterations).charAt(0);
                             }
