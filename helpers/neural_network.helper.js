@@ -8,6 +8,7 @@ var numberOfActivationUnitsL2;
 var X;
 var y;
 var ThetaVec;
+var numberOfExamples;
 
 var convertMatrictToVector = function (matrix) {
     'use strict';
@@ -31,6 +32,50 @@ var convertVectorToMatrix = function (vector, noRows, noCulumns) {
     return matrix;
 };
 
+var addBias = function (activationUnits) {
+    var activationUnitsWithBias = numeric.clone(activationUnits);
+    for (i = 0; i < numberOfExamples; i = i + 1) {
+        activationUnitsWithBias[i].unshift(1);
+    }
+
+    return activationUnitsWithBias;
+};
+
+var removeBias = function (deltaUnitsWithBias) {
+    var deltaUnits = numeric.clone(deltaUnitsWithBias);
+    for (i = 0; i < numberOfExamples; i = i + 1) {
+        deltaUnits[i].shift();
+    }
+    return deltaUnits;
+};
+
+var computeActivationUnits = function (inputActivationUnits, ThetaTransposed){
+    var outputActivationUnits = numeric.dot(inputActivationUnits, ThetaTransposed);
+    outputActivationUnits = numeric.div(1, numeric.add(1, numeric.exp(numeric.mul(-1, outputActivationUnits))));
+
+    return outputActivationUnits;
+};
+
+var computeActivationUnitsWithBias = function (activationUnitsWithBias, ThetaTransposed) {
+    var activationUnits = computeActivationUnits(activationUnitsWithBias, ThetaTransposed);
+
+    return addBias(activationUnits);
+}
+
+var computeDeltaUnitsWithBias = function (activationUnitsWithBias, DeltaUnits, Theta) {
+    var sigmaGradient = numeric.mul(activationUnitsWithBias, numeric.sub(1, activationUnitsWithBias));
+    var deltaUnitsWithBias = numeric.dot(DeltaUnits, Theta);
+
+    deltaUnitsWithBias = numeric.mul(deltaUnitsWithBias, sigmaGradient);
+
+    return deltaUnitsWithBias;
+}
+
+var computeDeltaUnits = function (activationUnitsWithBias, DeltaUnits, Theta) {
+    var deltaUnitsWithBias = computeDeltaUnitsWithBias(activationUnitsWithBias, DeltaUnits, Theta);
+    return removeBias(deltaUnitsWithBias);
+}
+
 
 var costFunction = function () {
     'use strict';
@@ -46,18 +91,13 @@ var costFunction = function () {
     var theta1Vec;
     var theta2Vec;
     var theta3Vec;
-    var A1;
     var A1withBias;
-    var A2;
     var A2withBias;
-    var A3;
     var A3withBias;
     var A4;
     var cost;
     var D2;
-    var D2withBias;
     var D3;
-    var D3withBias;
     var D4;
     var sigmaGradientLayer2;
     var sigmaGradientLayer3;
@@ -68,7 +108,6 @@ var costFunction = function () {
     var GradTheta2;
     var GradTheta3;
     var gradient;
-    var numberOfExamples = X.length;
 
     theta1Vec = ThetaVec.slice(0, (numberOfFeatures + 1) * numberOfActivationUnitsL1);
     theta2Vec = ThetaVec.slice((numberOfFeatures + 1) * numberOfActivationUnitsL1, (numberOfActivationUnitsL1 + 1) * (numberOfActivationUnitsL2) + (numberOfFeatures + 1) * numberOfActivationUnitsL1);
@@ -86,33 +125,11 @@ var costFunction = function () {
     Theta2Transposed = numeric.transpose(Theta2);
     Theta3Transposed = numeric.transpose(Theta3);
 
+    A1withBias = addBias(numeric.clone(X));
+    A2withBias = computeActivationUnitsWithBias(A1withBias, Theta1Transposed);
+    A3withBias = computeActivationUnitsWithBias(A2withBias, Theta2Transposed);
 
-    A1 = numeric.clone(X);
-    A1withBias = numeric.clone(A1);
-
-    for (i = 0; i < numberOfExamples; i = i + 1) {
-        A1withBias[i].unshift(1);
-    }
-
-    A2 = numeric.dot(A1withBias, Theta1Transposed);
-    A2 = numeric.div(1, numeric.add(1, numeric.exp(numeric.mul(-1, A2))));
-
-    A2withBias = numeric.clone(A2);
-    for (i = 0; i < numberOfExamples; i = i + 1) {
-        A2withBias[i].unshift(1);
-    }
-
-    A3 = numeric.dot(A2withBias, Theta2Transposed);
-    A3 = numeric.div(1, numeric.add(1, numeric.exp(numeric.mul(-1, A3))));
-
-    A3withBias = numeric.clone(A3);
-    for (i = 0; i < numberOfExamples; i = i + 1) {
-        A3withBias[i].unshift(1);
-    }
-
-    A4 = numeric.dot(A3withBias, Theta3Transposed);
-    A4 = numeric.div(1, numeric.add(1, numeric.exp(numeric.mul(-1, A4))));
-
+    A4 = computeActivationUnits(A3withBias, Theta3Transposed);
 
     cost = 0;
 
@@ -123,28 +140,8 @@ var costFunction = function () {
     cost = cost / numberOfExamples;
 
     D4 = numeric.sub(A4, y);
-
-    sigmaGradientLayer3 = numeric.mul(A3withBias, numeric.sub(1, A3withBias));
-    D3withBias = numeric.dot(D4, Theta3);
-
-    D3withBias = numeric.mul(D3withBias, sigmaGradientLayer3);
-
-    D3 = numeric.clone(D3withBias);
-
-    for (i = 0; i < numberOfExamples; i = i + 1) {
-        D3[i].shift();
-    }
-
-    sigmaGradientLayer2 = numeric.mul(A2withBias, numeric.sub(1, A2withBias));
-    D2withBias = numeric.dot(D3, Theta2);
-
-
-    D2withBias = numeric.mul(D2withBias, sigmaGradientLayer2);
-    D2 = numeric.clone(D2withBias);
-
-    for (i = 0; i < numberOfExamples; i = i + 1) {
-        D2[i].shift();
-    }
+    D3 = computeDeltaUnits(A3withBias, D4, Theta3);
+    D2 = computeDeltaUnits(A2withBias, D3, Theta2);
 
     for (i = 0; i < numberOfExamples; i = i + 1) {
         GradTheta1 = numeric.add(GradTheta1, numeric.tensor(D2[i], A1withBias[i]));
@@ -167,14 +164,10 @@ var costFunction = function () {
     theta1Vec = null;
     theta2Vec = null;
     A1withBias = null;
-    A2 = null;
     A2withBias = null;
-    A3 = null;
     A3withBias = null;
     D2 = null;
-    D2withBias = null;
     D3 = null;
-    D3withBias = null;
     sigmaGradientLayer2 = null;
     sigmaGradientLayer3 = null;
     gtheta1Vec = null;
@@ -193,6 +186,8 @@ process.on('message', function (setup) {
 
     X = setup.X;
     y = setup.Y;
+
+    numberOfExamples = X.length;
 
     ThetaVec = setup.ThetaVec;
 
