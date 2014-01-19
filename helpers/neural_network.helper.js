@@ -10,7 +10,7 @@ var y;
 var ThetaVec;
 var numberOfExamples;
 
-var convertMatrictToVector = function (matrix) {
+var convertMatrixToVector = function (matrix) {
     'use strict';
 
     return _.flatten(matrix);
@@ -149,9 +149,9 @@ var costFunction = function () {
         GradTheta3 = numeric.add(GradTheta3, numeric.tensor(D4[i], A3withBias[i]));
     }
 
-    gtheta3Vec = numeric.mul(1 / numberOfExamples, convertMatrictToVector(GradTheta3));
-    gtheta2Vec = numeric.mul(1 / numberOfExamples, convertMatrictToVector(GradTheta2));
-    gtheta1Vec = numeric.mul(1 / numberOfExamples, convertMatrictToVector(GradTheta1));
+    gtheta3Vec = numeric.mul(1 / numberOfExamples, convertMatrixToVector(GradTheta3));
+    gtheta2Vec = numeric.mul(1 / numberOfExamples, convertMatrixToVector(GradTheta2));
+    gtheta1Vec = numeric.mul(1 / numberOfExamples, convertMatrixToVector(GradTheta1));
 
     gradient = gtheta1Vec.concat(gtheta2Vec, gtheta3Vec);
 
