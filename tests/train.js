@@ -26,7 +26,7 @@ var setup = {
     verboseMode: true,
     learningRate: 0.5,
     maxCostError: 0.001,
-    maxNoOfIterations: 100000
+    maxNoOfIterations: 1000000
 }
 
 nn.train(setup, function (err, model) {
@@ -39,25 +39,35 @@ nn.train(setup, function (err, model) {
         }
     }
 
-    nn.predict([0,0], function (err, probability){
+    var predictionOptions = {
+        numberOfActivationUnitsL1: 4,
+        numberOfActivationUnitsL2: 4,
+        model: model
+    };
+
+    predictionOptions.inputVector = [0,0];
+    nn.predict(predictionOptions, function (err, probability){
         assert.equal(probability < 0.01, true);
         console.log('probability that [0,0] would be positive', probability);
         updatePredictionCounter();
     });
 
-    nn.predict([0,1], function (err, probability){
+    predictionOptions.inputVector = [0,1];
+    nn.predict(predictionOptions, function (err, probability){
         assert.equal(probability > 0.99, true);
         console.log('probability that [0,1] would be positive', probability);
         updatePredictionCounter();
     });
 
-    nn.predict([1,0], function (err, probability){
+    predictionOptions.inputVector = [1,0];
+    nn.predict(predictionOptions, function (err, probability){
         assert.equal(probability > 0.99, true);
         console.log('probability that [1,0] would be positive', probability);
         updatePredictionCounter();
     });
 
-    nn.predict([1,1], function (err, probability){
+    predictionOptions.inputVector = [1,1];
+    nn.predict(predictionOptions, function (err, probability){
         assert.equal(probability < 0.01, true);
         console.log('probability that [1,1] would be positive', probability);
         updatePredictionCounter();
