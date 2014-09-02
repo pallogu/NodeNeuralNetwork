@@ -7,6 +7,7 @@ var numberOfActivationUnitsL1;
 var numberOfActivationUnitsL2;
 var X;
 var y;
+var lambda;
 var ThetaVec;
 var numberOfExamples;
 
@@ -39,6 +40,14 @@ var addBias = function (activationUnits) {
     }
 
     return activationUnitsWithBias;
+};
+
+var convertFirstColumnToZeros = function (Theta) {
+    var ThetaWithZeros = numeric.clone(Theta);
+    for(var i = 0; i < Theta.length; i++) {
+        Theta[i][0] = 0;
+    }
+    return ThetaWithZeros;
 };
 
 var removeBias = function (deltaUnitsWithBias) {
@@ -137,7 +146,11 @@ var costFunction = function () {
         cost += -1 * y[i][0] * Math.log(A4[i][0]) - ( 1 - y[i][0] ) * Math.log(1 - A4[i][0]);
     }
 
-    cost = cost / numberOfExamples;
+    var sumOfThetaSquared = _.reduce(theta1Vec, function (sum, item) { return sum + item * item}, 0);
+    sumOfThetaSquared += _.reduce(theta2Vec, function (sum, item) {return sum + item * item}, 0);
+    sumOfThetaSquared += _.reduce(theta3Vec, function (sum, item) {return sum + item * item}, 0);
+
+    cost += lambda * sumOfThetaSquared / 2;
 
     D4 = numeric.sub(A4, y);
     D3 = computeDeltaUnits(A3withBias, D4, Theta3);
@@ -149,9 +162,13 @@ var costFunction = function () {
         GradTheta3 = numeric.add(GradTheta3, numeric.tensor(D4[i], A3withBias[i]));
     }
 
-    gtheta3Vec = numeric.mul(1 / numberOfExamples, convertMatrixToVector(GradTheta3));
-    gtheta2Vec = numeric.mul(1 / numberOfExamples, convertMatrixToVector(GradTheta2));
-    gtheta1Vec = numeric.mul(1 / numberOfExamples, convertMatrixToVector(GradTheta1));
+    GradTheta1  = numeric.add(GradTheta1, numeric.mul(lambda, convertFirstColumnToZeros(Theta1)));
+    GradTheta2  = numeric.add(GradTheta2, numeric.mul(lambda, convertFirstColumnToZeros(Theta2)));
+    GradTheta3  = numeric.add(GradTheta3, numeric.mul(lambda, convertFirstColumnToZeros(Theta3)));
+
+    gtheta3Vec = convertMatrixToVector(GradTheta3);
+    gtheta2Vec = convertMatrixToVector(GradTheta2);
+    gtheta1Vec = convertMatrixToVector(GradTheta1);
 
     gradient = gtheta1Vec.concat(gtheta2Vec, gtheta3Vec);
 
@@ -183,6 +200,7 @@ process.on('message', function (setup) {
     numberOfFeatures = setup.numberOfFeatures;
     numberOfActivationUnitsL1 = setup.numberOfActivationUnitsL1;
     numberOfActivationUnitsL2 = setup.numberOfActivationUnitsL2;
+    lambda = setup.lambda;
 
     X = setup.X;
     y = setup.Y;

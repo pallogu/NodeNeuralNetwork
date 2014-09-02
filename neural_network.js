@@ -27,12 +27,13 @@ _.extend(Neural_Network.prototype, {
         var numberOfNodes = options.numberOfNodes || os.cpus().length;
         var numberOfExamplesPerNode = options.numberOfExamplesPerNode || 1;
         var maxCostError = options.maxCostError || 0.01;
-        var maxGradientSize = options.maxGradientSize || 0.00001;
+        var maxGradientSize = options.maxGradientSize || 1e-10;
         var learningRate = options.learningRate || 1;
         var maxNoOfIterations = options.maxNoOfIterations || Number.MAX_VALUE;
         var verboseMode = options.verboseMode || false;
         var numberOfProcessedExamples = 0;
         var numberOfOptimizingIterations = 0;
+        var lambda = options.lambda || 1e-10;
 
         var numberOfFeatures = trainingSetInput[0].length
         var numberOfActivationUnitsL1 = options.numberOfActivationUnitsL1;
@@ -59,45 +60,13 @@ _.extend(Neural_Network.prototype, {
         var resetNumberOfProcessedExamples = function () {numberOfProcessedExamples = 0;};
         var stepInGradientDirection = function (sumOfGradientsFromNodes) { initialThetaVec = numeric.sub(initialThetaVec, numeric.mul(learningRate / numberOfNodes, sumOfGradientsFromNodes));}
 
-        var verifyMinimum = function (input, output, gradientAtTheta, callback) {
-            var epsilon = 0.001;
-            var completedPartialDerivations = 0;
-            var diagonalHessianElementsPositive = true;
-
-            for (var k = 0, l = initialThetaVec.length; k < l; k ++) {
-                var epsilonTheta = numeric.clone(initialThetaVec);
-                epsilonTheta[k] += epsilon;
-                (function (index) {
-                    computeCluster.enqueue({
-                        numberOfFeatures: numberOfFeatures,
-                        numberOfActivationUnitsL1: numberOfActivationUnitsL1,
-                        numberOfActivationUnitsL2: numberOfActivationUnitsL2,
-                        ThetaVec: epsilonTheta,
-                        X: input,
-                        Y: output
-
-                    }, function (err, nnTrainingCoreResult) {
-                        completedPartialDerivations++;
-                        var secondaryDerivation = (nnTrainingCoreResult[1][index] - gradientAtTheta[index])/epsilon;
-                        if(secondaryDerivation < 0) {
-                            diagonalHessianElementsPositive = false;
-                        }
-                        if(completedPartialDerivations === (initialThetaVec.length - 1)){
-                            callback(null, diagonalHessianElementsPositive);
-                        }
-                    });
-                })(k);
-
-
-            }
-        };
-
         var processTrainingExamples = function () {
             var trainingRegressionCounter = numberOfNodes;
             var sumOfGradientsFromNodes = numeric.rep([initialThetaVec.length], 0);
             var gradientScalar = 0;
             var thetaVecScalar = 0;
             var totalCost = 0;
+            var batchSize = 0;
 
             for (var k = 0; k < numberOfNodes; k++) {
                 var trainingSetSliceStart = numberOfProcessedExamples + numberOfExamplesPerNode * k;
@@ -105,11 +74,14 @@ _.extend(Neural_Network.prototype, {
                 var trainingSetInputSlice = trainingSetInput.slice(trainingSetSliceStart, trainingSetSliceEnd);
                 var trainingSetOutputSlice = trainingSetOutput.slice(trainingSetSliceStart, trainingSetSliceEnd);
 
+                batchSize += trainingSetInputSlice.length;
+
                 computeCluster.enqueue({
                     numberOfFeatures: numberOfFeatures,
                     numberOfActivationUnitsL1: numberOfActivationUnitsL1,
                     numberOfActivationUnitsL2: numberOfActivationUnitsL2,
                     ThetaVec: initialThetaVec,
+                    lambda: lambda,
                     X: trainingSetInputSlice,
                     Y: trainingSetOutputSlice
 
@@ -123,6 +95,9 @@ _.extend(Neural_Network.prototype, {
                     var allNodesFinished = --trainingRegressionCounter === 0;
 
                     if (allNodesFinished) {
+                        sumOfGradientsFromNodes = numeric.mul(1/batchSize, sumOfGradientsFromNodes);
+                        totalCost = totalCost / batchSize;
+
                         thetaVecScalar = Math.sqrt(_.reduce(initialThetaVec, function (sum, num) { return (sum + num * num);}, 0));
                         gradientScalar = Math.sqrt(_.reduce(sumOfGradientsFromNodes, function (sum, num) { return (sum + num * num);}, 0))/initialThetaVec.length;
 
@@ -133,29 +108,13 @@ _.extend(Neural_Network.prototype, {
                             ++numberOfOptimizingIterations;
                             reportProgress(totalCost, gradientScalar, thetaVecScalar);
 
-                            if (numberOfOptimizingIterations > maxNoOfIterations || totalCost < maxCostError) {
+                            if (numberOfOptimizingIterations > maxNoOfIterations || totalCost < maxCostError || gradientScalar < maxGradientSize) {
                                 endTraining(err, totalCost, initialThetaVec, callback);
                             } else {
-                                if(gradientScalar < maxGradientSize) {
-                                    var batchInputSlice = trainingSetInput.slice(numberOfProcessedExamples - numberOfNodes*numberOfExamplesPerNode, numberOfProcessedExamples);
-                                    var batchOutputSlice = trainingSetOutput.slice(numberOfProcessedExamples - numberOfNodes*numberOfExamplesPerNode, numberOfProcessedExamples);
-
-                                    verifyMinimum(batchInputSlice, batchOutputSlice, sumOfGradientsFromNodes, function (err, descentIsAtMinimum) {
-                                        if(descentIsAtMinimum) {
-                                            endTraining(err, totalCost, initialThetaVec, callback)
-                                        } else {
-                                            resetNumberOfProcessedExamples();
-                                            reshuffle(trainingSetInput, trainingSetOutput);
-                                            stepInGradientDirection(sumOfGradientsFromNodes);
-                                            processTrainingExamples();
-                                        }
-                                    });
-                                } else {
-                                    resetNumberOfProcessedExamples();
-                                    reshuffle(trainingSetInput, trainingSetOutput);
-                                    stepInGradientDirection(sumOfGradientsFromNodes);
-                                    processTrainingExamples();
-                                }
+                                resetNumberOfProcessedExamples();
+                                reshuffle(trainingSetInput, trainingSetOutput);
+                                stepInGradientDirection(sumOfGradientsFromNodes);
+                                processTrainingExamples();
                             }
                         }
                     }

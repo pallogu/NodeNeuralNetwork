@@ -66,6 +66,7 @@ Following parameters are optional
 * numberOfNodes: (int) Used for map reduce
 * numberOfExamplesPerNode: (int)
 * learningRate: (number) This number is used in gradient descent
+* lambda: (number) regularisation parameter
 * maxCostError: (number) This parameter is used to stop training. If the value of cost function is less than maxCostError callback will be called
 * maxGradientSize: (number) This parameter is used also to stop training. If the gradient size is smaller than this value, there is a check of whether secondary derivations are positive (diagonal of Hessian)
 * maxNoOfIterations: (int) This parameter is used to stop training. The default value is Number.MAX_VALUE

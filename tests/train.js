@@ -21,9 +21,10 @@ var setup = {
     trainingSetOutput: trainingSetOutput,
     numberOfActivationUnitsL1: 4,
     numberOfActivationUnitsL2: 4,
-    numberOfNodes: 1,
-    numberOfExamplesPerNode: 4,
+    numberOfNodes: 2,
+    numberOfExamplesPerNode: 2,
     verboseMode: true,
+    lambda:0.0001,
     learningRate: 0.5,
     maxCostError: 0.001,
     maxNoOfIterations: 1000000

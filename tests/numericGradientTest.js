@@ -45,13 +45,13 @@ var computeDifferenceBetweenNumericlPartialDerivativeAndBackprop = function() {
      var updateCounters = function () {
          bc--;
          if (bc<1) {
-             errorSum += Math.abs((costPlusEpsilon - costMinusEpsilon)/2/ epsilon - backProgGradient);
+             errorSum += Math.abs((costPlusEpsilon - costMinusEpsilon)/2/ epsilon - backProgGradient/4);
              counter--;
              if(counter + 1  > 0) {
                  computeDifferenceBetweenNumericlPartialDerivativeAndBackprop();
              } else {
-                 assert.equal(errorSum < 1e-8, true);
                  console.log('Sum of differences between numerical and back propagation gradients: %s should be smaller than 1e-8 or such', errorSum);
+                 assert.equal(errorSum < 1e-8, true);
                  computeCluster.exit();
              }
          }
@@ -68,6 +68,7 @@ var computeDifferenceBetweenNumericlPartialDerivativeAndBackprop = function() {
          numberOfActivationUnitsL1: numberOfActivationUnitsL1,
          numberOfActivationUnitsL2: numberOfActivationUnitsL2,
          ThetaVec: initialThetaVec,
+         lambda: 1,
          X: trainingSetInput,
          Y: trainingSetOutput
      }, function (err, r) {
@@ -80,10 +81,11 @@ var computeDifferenceBetweenNumericlPartialDerivativeAndBackprop = function() {
          numberOfActivationUnitsL1: numberOfActivationUnitsL1,
          numberOfActivationUnitsL2: numberOfActivationUnitsL2,
          ThetaVec: initialThetaVecMinusEps,
+         lambda: 1,
          X: trainingSetInput,
          Y: trainingSetOutput
      }, function (err, r) {
-         costMinusEpsilon = r[0];
+         costMinusEpsilon = r[0]/trainingSetOutput.length;
          updateCounters();
      });
 
@@ -91,11 +93,12 @@ var computeDifferenceBetweenNumericlPartialDerivativeAndBackprop = function() {
          numberOfFeatures: numberOfFeatures,
          numberOfActivationUnitsL1: numberOfActivationUnitsL1,
          numberOfActivationUnitsL2: numberOfActivationUnitsL2,
+         lambda: 1,
          ThetaVec: initialThetaVecPlusEps,
          X: trainingSetInput,
          Y: trainingSetOutput
      }, function (err, r) {
-         costPlusEpsilon = r[0];
+         costPlusEpsilon = r[0]/trainingSetOutput.length;
          updateCounters();
      });
 };
