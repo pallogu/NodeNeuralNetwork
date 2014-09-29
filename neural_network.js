@@ -1,5 +1,6 @@
 var _ = require('underscore');
 var numeric = require('numeric');
+var M = require('eigenjs').Matrix;
 var os = require('os');
 var path = require('path');
 
@@ -11,6 +12,32 @@ var computeCluster = new ComputeCluster({
 
 
 var shuffler = require('./helpers/shuffler.js');
+
+var splitThetaVecToMatrices = function (setup) {
+
+    var ThetaVec = setup.ThetaVec;
+    var numberOfFeatures = setup.numberOfFeatures;
+    var numberOfActivationUnitsL1 = setup.numberOfActivationUnitsL1;
+    var numberOfActivationUnitsL2 = setup.numberOfActivationUnitsL2;
+    var numberOfOutputUnits = setup.numberOfOutputUnits;
+
+    var Theta1 = new M(numberOfFeatures + 1, numberOfActivationUnitsL1);
+    var Theta2 = new M(numberOfActivationUnitsL1 + 1, numberOfActivationUnitsL2);
+    var Theta3 = new M (numberOfActivationUnitsL2 + 1, numberOfOutputUnits);
+    var theta1Vec = ThetaVec.slice(0, (numberOfFeatures + 1) * numberOfActivationUnitsL1);;
+    var theta2Vec = ThetaVec.slice((numberOfFeatures + 1) * numberOfActivationUnitsL1, (numberOfActivationUnitsL1 + 1) * (numberOfActivationUnitsL2) + (numberOfFeatures + 1) * numberOfActivationUnitsL1);;
+    var theta3Vec = ThetaVec.slice((numberOfActivationUnitsL1 + 1) * (numberOfActivationUnitsL2) + (numberOfFeatures + 1) * numberOfActivationUnitsL1, ThetaVec.length);;
+
+    Theta1.set(theta1Vec);
+    Theta2.set(theta2Vec);
+    Theta3.set(theta3Vec);
+
+    return {
+        Theta1 : Theta1,
+        Theta2 : Theta2,
+        Theta3 : Theta3
+    }
+};
 
 var Neural_Network = function () {
 };
@@ -35,11 +62,24 @@ _.extend(Neural_Network.prototype, {
         var numberOfOptimizingIterations = 0;
         var lambda = options.lambda || 1e-10;
 
-        var numberOfFeatures = trainingSetInput[0].length
+        var numberOfFeatures = trainingSetInput[0].length;
+        var numberOfOutputUnits = trainingSetOutput[0].length;
         var numberOfActivationUnitsL1 = options.numberOfActivationUnitsL1;
         var numberOfActivationUnitsL2 = options.numberOfActivationUnitsL2;
 
-        var initialThetaVec = options.model || numeric.sub(numeric.random([1, (numberOfFeatures + 1) * numberOfActivationUnitsL1 + (numberOfActivationUnitsL1 + 1) * numberOfActivationUnitsL2 + numberOfActivationUnitsL2 + 1])[0], 0.5);
+        var tmp = (numberOfFeatures + 1) * numberOfActivationUnitsL1 + (numberOfActivationUnitsL1 + 1) * numberOfActivationUnitsL2 + numberOfActivationUnitsL2 + numberOfOutputUnits;
+
+        var initialThetaVec = options.model || M.Random(1, tmp);
+
+        var thetaMatrices = splitThetaVecToMatrices({
+            ThetaVec: initialThetaVec,
+            numberOfActivationUnitsL1: numberOfActivationUnitsL1,
+            numberOfActivationUnitsL2: numberOfActivationUnitsL2,
+            numberOfFeatures: numberOfFeatures,
+            numberOfOutputUnits: numberOfOutputUnits
+        });
+
+
         var endTraining = function (err, totalCost, initialThetaVec, callback) {
             console.log('finished with final cost: ', totalCost);
             console.timeEnd('Time required to train:');
@@ -77,10 +117,9 @@ _.extend(Neural_Network.prototype, {
                 batchSize += trainingSetInputSlice.length;
 
                 computeCluster.enqueue({
-                    numberOfFeatures: numberOfFeatures,
-                    numberOfActivationUnitsL1: numberOfActivationUnitsL1,
-                    numberOfActivationUnitsL2: numberOfActivationUnitsL2,
-                    ThetaVec: initialThetaVec,
+                    Theta1 : thetaMatrices.Theta1,
+                    Theta2 : thetaMatrices.Theta2,
+                    Theta3 : thetaMatrices.Theta3,
                     lambda: lambda,
                     X: trainingSetInputSlice,
                     Y: trainingSetOutputSlice
