@@ -62,12 +62,13 @@ _.extend(Neural_Network.prototype, {
 
         var processPaused = false;
         var stdinHandler = function( key ){
-            // ctrl-c ( end of text )
-            if ( key === '\u0003' ) {
+            if ( key === '\u001B' ) {
                 console.log('press y to exit');
                 processPaused = true;
             } else if ( processPaused && key === '\u0079') {
                 console.log('model', thetaVectors.Theta1.vector.concat(thetaVectors.Theta2.vector, thetaVectors.Theta3.vector));
+                process.exit();
+            } else if (key === '\u0003') {
                 process.exit();
             } else {
                 processPaused = false;
