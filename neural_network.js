@@ -1,9 +1,16 @@
-var _ = require('underscore');
+var _ = require('lodash');
 var numeric = require('numeric');
-var M = require('eigenjs').Matrix;
 var os = require('os');
 var path = require('path');
 
+var stdin = process.stdin;
+stdin.setRawMode( true );
+
+// resume stdin in the parent process (node app won't quit all by itself
+// unless an error or process.exit() happens)
+stdin.resume();
+
+stdin.setEncoding( 'utf8' );
 
 const ComputeCluster = require('compute-cluster');
 var computeCluster = new ComputeCluster({
@@ -13,33 +20,37 @@ var computeCluster = new ComputeCluster({
 
 var shuffler = require('./helpers/shuffler.js');
 
-var splitThetaVecToMatrices = function (setup) {
+var Neural_Network = function () {};
 
+var splitThetaIntoVecs = function (setup) {
     var ThetaVec = setup.ThetaVec;
     var numberOfFeatures = setup.numberOfFeatures;
     var numberOfActivationUnitsL1 = setup.numberOfActivationUnitsL1;
     var numberOfActivationUnitsL2 = setup.numberOfActivationUnitsL2;
     var numberOfOutputUnits = setup.numberOfOutputUnits;
 
-    var Theta1 = new M(numberOfFeatures + 1, numberOfActivationUnitsL1);
-    var Theta2 = new M(numberOfActivationUnitsL1 + 1, numberOfActivationUnitsL2);
-    var Theta3 = new M (numberOfActivationUnitsL2 + 1, numberOfOutputUnits);
     var theta1Vec = ThetaVec.slice(0, (numberOfFeatures + 1) * numberOfActivationUnitsL1);;
     var theta2Vec = ThetaVec.slice((numberOfFeatures + 1) * numberOfActivationUnitsL1, (numberOfActivationUnitsL1 + 1) * (numberOfActivationUnitsL2) + (numberOfFeatures + 1) * numberOfActivationUnitsL1);;
     var theta3Vec = ThetaVec.slice((numberOfActivationUnitsL1 + 1) * (numberOfActivationUnitsL2) + (numberOfFeatures + 1) * numberOfActivationUnitsL1, ThetaVec.length);;
 
-    Theta1.set(theta1Vec);
-    Theta2.set(theta2Vec);
-    Theta3.set(theta3Vec);
 
     return {
-        Theta1 : Theta1,
-        Theta2 : Theta2,
-        Theta3 : Theta3
+        Theta1 : {
+            vector: theta1Vec,
+            rows: numberOfActivationUnitsL1,
+            cols: numberOfFeatures + 1
+        },
+        Theta2 : {
+            vector: theta2Vec,
+            rows: numberOfActivationUnitsL2,
+            cols: numberOfActivationUnitsL1 + 1
+        },
+        Theta3 : {
+            vector: theta3Vec,
+            rows: numberOfOutputUnits,
+            cols: numberOfActivationUnitsL2 + 1
+        }
     }
-};
-
-var Neural_Network = function () {
 };
 
 _.extend(Neural_Network.prototype, {
@@ -48,6 +59,23 @@ _.extend(Neural_Network.prototype, {
     },
     train: function (options, callback) {
         var that = this;
+
+        var processPaused = false;
+        var stdinHandler = function( key ){
+            console.log('foo');
+            // ctrl-c ( end of text )
+            if ( key === '\u0003' ) {
+                console.log('press y to exit');
+                processPaused = true;
+            } else if ( processPaused && key === '\u0079') {
+                console.log('model', thetaVectors.Theta1.vector.concat(thetaVectors.Theta2.vector, thetaVectors.Theta3.vector));
+                process.exit();
+            } else {
+                processPaused = false;
+            }
+        }
+
+        stdin.on( 'data', stdinHandler);
 
         var trainingSetInput = options.trainingSetInput;
         var trainingSetOutput = options.trainingSetOutput;
@@ -67,11 +95,9 @@ _.extend(Neural_Network.prototype, {
         var numberOfActivationUnitsL1 = options.numberOfActivationUnitsL1;
         var numberOfActivationUnitsL2 = options.numberOfActivationUnitsL2;
 
-        var tmp = (numberOfFeatures + 1) * numberOfActivationUnitsL1 + (numberOfActivationUnitsL1 + 1) * numberOfActivationUnitsL2 + numberOfActivationUnitsL2 + numberOfOutputUnits;
+        var initialThetaVec = options.model || numeric.sub(numeric.random([1, (numberOfFeatures + 1) * numberOfActivationUnitsL1 + (numberOfActivationUnitsL1 + 1) * numberOfActivationUnitsL2 + numberOfActivationUnitsL2 + 1])[0], 0.5);
 
-        var initialThetaVec = options.model || M.Random(1, tmp);
-
-        var thetaMatrices = splitThetaVecToMatrices({
+        var thetaVectors = splitThetaIntoVecs({
             ThetaVec: initialThetaVec,
             numberOfActivationUnitsL1: numberOfActivationUnitsL1,
             numberOfActivationUnitsL2: numberOfActivationUnitsL2,
@@ -84,7 +110,11 @@ _.extend(Neural_Network.prototype, {
             console.log('finished with final cost: ', totalCost);
             console.timeEnd('Time required to train:');
 
-            callback.call(that, err, initialThetaVec);
+            stdin.pause();
+            stdin.removeAllListeners();
+            stdin = null;
+
+            callback.call(that, err, thetaVectors.Theta1.vector.concat(thetaVectors.Theta2.vector, thetaVectors.Theta3.vector));
         };
         var reportProgress = function (totalCost, gradientScalar, thetaVecScalar) {
             if (verboseMode && numberOfOptimizingIterations % 1000 === 0) {
@@ -98,11 +128,18 @@ _.extend(Neural_Network.prototype, {
             trainingSetOutput = reshuffledTrainingSet[1];
         };
         var resetNumberOfProcessedExamples = function () {numberOfProcessedExamples = 0;};
-        var stepInGradientDirection = function (sumOfGradientsFromNodes) { initialThetaVec = numeric.sub(initialThetaVec, numeric.mul(learningRate / numberOfNodes, sumOfGradientsFromNodes));}
+        var stepInGradientDirection = function (D1, D2, D3) {
+            thetaVectors.Theta1.vector = numeric.sub(thetaVectors.Theta1.vector, numeric.mul(learningRate, D1));
+            thetaVectors.Theta2.vector = numeric.sub(thetaVectors.Theta2.vector, numeric.mul(learningRate, D2));
+            thetaVectors.Theta3.vector = numeric.sub(thetaVectors.Theta3.vector, numeric.mul(learningRate, D3));
+        };
 
         var processTrainingExamples = function () {
             var trainingRegressionCounter = numberOfNodes;
-            var sumOfGradientsFromNodes = numeric.rep([initialThetaVec.length], 0);
+            var D1 = numeric.rep([thetaVectors.Theta1.vector.length], 0);
+            var D2 = numeric.rep([thetaVectors.Theta2.vector.length], 0);
+            var D3 = numeric.rep([thetaVectors.Theta3.vector.length], 0);
+
             var gradientScalar = 0;
             var thetaVecScalar = 0;
             var totalCost = 0;
@@ -117,31 +154,44 @@ _.extend(Neural_Network.prototype, {
                 batchSize += trainingSetInputSlice.length;
 
                 computeCluster.enqueue({
-                    Theta1 : thetaMatrices.Theta1,
-                    Theta2 : thetaMatrices.Theta2,
-                    Theta3 : thetaMatrices.Theta3,
+                    Theta1: thetaVectors.Theta1,
+                    Theta2: thetaVectors.Theta2,
+                    Theta3: thetaVectors.Theta3,
                     lambda: lambda,
                     X: trainingSetInputSlice,
                     Y: trainingSetOutputSlice
-
                 }, function (err, nnTrainingCoreResult) {
-                    var gradientFromCurrentBatch = nnTrainingCoreResult[1];
-                    var costFromCurrentBatch = nnTrainingCoreResult[0]
-                    sumOfGradientsFromNodes = numeric.add(sumOfGradientsFromNodes, gradientFromCurrentBatch);
-                    totalCost += costFromCurrentBatch;
-                    numberOfProcessedExamples += numberOfExamplesPerNode;
+
+                    D1 = numeric.add(D1, nnTrainingCoreResult.D1);
+                    D2 = numeric.add(D2, nnTrainingCoreResult.D2);
+                    D3 = numeric.add(D3, nnTrainingCoreResult.D3);
+                    totalCost += nnTrainingCoreResult.cost;
+
 
                     var allNodesFinished = --trainingRegressionCounter === 0;
 
                     if (allNodesFinished) {
-                        sumOfGradientsFromNodes = numeric.mul(1/batchSize, sumOfGradientsFromNodes);
+
+                        numberOfProcessedExamples += batchSize;
+
+                        D1 = numeric.mul(1/batchSize, D1);
+                        D2 = numeric.mul(1/batchSize, D2);
+                        D3 = numeric.mul(1/batchSize, D3);
+
                         totalCost = totalCost / batchSize;
 
-                        thetaVecScalar = Math.sqrt(_.reduce(initialThetaVec, function (sum, num) { return (sum + num * num);}, 0));
-                        gradientScalar = Math.sqrt(_.reduce(sumOfGradientsFromNodes, function (sum, num) { return (sum + num * num);}, 0))/initialThetaVec.length;
+                        thetaVecScalar = _.reduce(thetaVectors.Theta1.vector, function (sum, num) { return (sum + num * num);}, 0);
+                        thetaVecScalar += _.reduce(thetaVectors.Theta2.vector, function (sum, num) { return (sum + num * num);}, 0);
+                        thetaVecScalar += _.reduce(thetaVectors.Theta3.vector, function (sum, num) { return (sum + num * num);}, 0);
+                        thetaVecScalar = Math.sqrt(thetaVecScalar);
+
+                        gradientScalar = _.reduce(D1, function (sum, num) { return (sum + num * num);}, 0);
+                        gradientScalar += _.reduce(D2, function (sum, num) { return (sum + num * num);}, 0);
+                        gradientScalar += _.reduce(D3, function (sum, num) { return (sum + num * num);}, 0);
+                        gradientScalar = Math.sqrt(gradientScalar);
 
                         if (numberOfProcessedExamples < trainingSetInput.length - numberOfExamplesPerNode * numberOfNodes) {
-                            stepInGradientDirection(sumOfGradientsFromNodes);
+                            stepInGradientDirection(D1, D2, D3);
                             processTrainingExamples();
                         } else {
                             ++numberOfOptimizingIterations;
@@ -152,7 +202,7 @@ _.extend(Neural_Network.prototype, {
                             } else {
                                 resetNumberOfProcessedExamples();
                                 reshuffle(trainingSetInput, trainingSetOutput);
-                                stepInGradientDirection(sumOfGradientsFromNodes);
+                                stepInGradientDirection(D1, D2, D3);
                                 processTrainingExamples();
                             }
                         }
@@ -170,16 +220,25 @@ _.extend(Neural_Network.prototype, {
         var numberOfActivationUnitsL2 = opts.numberOfActivationUnitsL2;
         var model = opts.model;
 
-        computeCluster.enqueue({
-            numberOfFeatures: X.length,
+        var thetaVectors = splitThetaIntoVecs({
+            ThetaVec: model,
             numberOfActivationUnitsL1: numberOfActivationUnitsL1,
             numberOfActivationUnitsL2: numberOfActivationUnitsL2,
-            ThetaVec: model,
+            numberOfFeatures: X.length,
+            numberOfOutputUnits: 1
+        });
+
+        var setup = {
+            Theta1: thetaVectors.Theta1,
+            Theta2: thetaVectors.Theta2,
+            Theta3: thetaVectors.Theta3,
+            lambda: 0,
             X: [X],
             Y: [[0]]
+        };
 
-        }, function (err, nnTrainingCoreResult) {
-            callback.call(that, err, nnTrainingCoreResult[2][0]);
+        computeCluster.enqueue(setup, function (err, nnTrainingCoreResult) {
+            callback.call(that, err, nnTrainingCoreResult.prediction);
         });
     }
 });

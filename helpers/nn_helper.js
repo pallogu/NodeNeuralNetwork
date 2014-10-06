@@ -1,5 +1,5 @@
 'use strict';
-var _ = require('underscore');
+var _ = require('lodash');
 var M = require('eigenjs').Matrix;
 
 var NN_helper = function (options) {
@@ -9,7 +9,7 @@ var NN_helper = function (options) {
     var Theta3 = options.Theta3;
     var trainingSetInput = options.trainingSetInput;
     var trainingSetOutput = options.trainingSetOutput;
-    var lambda = options.lamda;
+    var lambda = options.lambda;
 
     var addBias = function (mat) {
         var matWithBias = new M.Ones(mat.rows(), mat.cols() + 1);
@@ -41,7 +41,14 @@ var NN_helper = function (options) {
 
         return sumSquared;
     };
-    
+
+    var setFirstColumnToZeros = function (mat) {
+        var tmpMat = M.Zero(mat.rows(), mat.cols());
+        tmpMat.rightCols(mat.cols()-1).assign(mat.rightCols(mat.cols()-1));
+
+        return tmpMat;
+    };
+
     var a1WithBias = addBias(trainingSetInput);
     var z2 = computeZ(a1WithBias, Theta1);
     var a2 = computeA(z2);
@@ -52,6 +59,10 @@ var NN_helper = function (options) {
     var z4 = computeZ(a3WithBias, Theta3);
     var a4 = computeA(z4);
 
+    var Theta1WithZeros = setFirstColumnToZeros(Theta1);
+    var Theta2WithZeros = setFirstColumnToZeros(Theta2);
+    var Theta3WithZeros = setFirstColumnToZeros(Theta3);
+
     var computeCost = function() {
         var sum = 0;
         
@@ -61,9 +72,11 @@ var NN_helper = function (options) {
         });
 
         sum = -1 * sum;
-        sum += sumThetaSquared(Theta1)*lambda/2;
-        sum += sumThetaSquared(Theta2)*lambda/2;
-        sum += sumThetaSquared(Theta3)*lambda/2;
+        if (lambda) {
+            sum += sumThetaSquared(Theta1WithZeros)*lambda/2;
+            sum += sumThetaSquared(Theta2WithZeros)*lambda/2;
+            sum += sumThetaSquared(Theta3WithZeros)*lambda/2;
+        }
 
         return sum;
     };
@@ -99,22 +112,14 @@ var NN_helper = function (options) {
         D3 = D3.add(d3.row(exampleIndex).transpose().mul(a3WithBias.row(exampleIndex)));
     }
 
-    var setFirstColumnToZeros = function (mat) {
-        var tmpMat = M.Zero(mat.rows(), mat.cols());
-        tmpMat.rightCols(mat.cols()-1).assign(mat.rightCols(mat.cols()-1));
+    if(lambda) {
+        D1 = D1.add(Theta1WithZeros.mul(lambda));
+        D2 = D2.add(Theta2WithZeros.mul(lambda));
+        D3 = D3.add(Theta3WithZeros.mul(lambda));
+    }
 
-        return tmpMat;
-    };
 
-    var Theta1WithZeros = setFirstColumnToZeros(Theta1);
-    var Theta2WithZeros = setFirstColumnToZeros(Theta2);
-    var Theta3WithZeros = setFirstColumnToZeros(Theta3);
-
-    D1 = D1.add(Theta1WithZeros.mul(lambda));
-    D2 = D2.add(Theta2WithZeros.mul(lambda));
-    D3 = D3.add(Theta3WithZeros.mul(lambda));
-
-    var computeCost = function () {
+    var summarize = function () {
         return {
             cost: cost,
             prediction: a4,
@@ -125,10 +130,7 @@ var NN_helper = function (options) {
     };
 
     return {
-        addBias : addBias,
-        computeA: computeA,
-        computeZ :  computeZ,
-        computeCost: computeCost()
+        result: summarize()
     };
 };
 

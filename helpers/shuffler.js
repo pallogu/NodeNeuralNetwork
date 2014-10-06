@@ -1,4 +1,4 @@
-var _ = require('underscore');
+var _ = require('lodash');
 var knuthShuffle = require('knuth-shuffle').knuthShuffle;
 
 var Shuffler = function (){};

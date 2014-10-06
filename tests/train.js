@@ -24,8 +24,8 @@ var setup = {
     numberOfNodes: 2,
     numberOfExamplesPerNode: 2,
     verboseMode: true,
-    lambda:0.0001,
-    learningRate: 0.5,
+    lambda:0.0000001,
+    learningRate: 1,
     maxCostError: 0.001,
     maxNoOfIterations: 1000000
 }
