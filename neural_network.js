@@ -62,7 +62,6 @@ _.extend(Neural_Network.prototype, {
 
         var processPaused = false;
         var stdinHandler = function( key ){
-            console.log('foo');
             // ctrl-c ( end of text )
             if ( key === '\u0003' ) {
                 console.log('press y to exit');
