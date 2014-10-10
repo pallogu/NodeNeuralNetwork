@@ -3,6 +3,8 @@ var numeric = require('numeric');
 var os = require('os');
 var path = require('path');
 
+var knuthShuffle = require('knuth-shuffle').knuthShuffle;
+
 var stdin = process.stdin;
 stdin.setRawMode( true );
 
@@ -16,9 +18,6 @@ const ComputeCluster = require('compute-cluster');
 var computeCluster = new ComputeCluster({
     module: path.join(__dirname, 'helpers/neural_network.helper.js')
 });
-
-
-var shuffler = require('./helpers/shuffler.js');
 
 var Neural_Network = function () {};
 
@@ -53,11 +52,45 @@ var splitThetaIntoVecs = function (setup) {
     }
 };
 
+var tmpArray = [];
+var tmpX = [];
+var tmpY = [];
+var shufflerCounter= 0;
+
+var reshuffle = function (Xmatrix, Ymatrix) {
+    'use strict';
+
+    tmpArray = [];
+    tmpX = [];
+    tmpY = [];
+    var shufflerCounter;
+
+    if(Xmatrix.length !== Ymatrix.length) {
+        throw 'Shuffler: reshuffle method: Length of arrays do not match';
+    } else {
+        for(shufflerCounter = 0; shufflerCounter < Xmatrix.length; shufflerCounter = shufflerCounter + 1) {
+            tmpArray.push([Xmatrix[shufflerCounter], Ymatrix[shufflerCounter]]);
+        }
+
+        knuthShuffle(tmpArray);
+
+        for(shufflerCounter = 0; shufflerCounter < Xmatrix.length; shufflerCounter = shufflerCounter + 1) {
+            tmpX.push(tmpArray[shufflerCounter][0]);
+            tmpY.push(tmpArray[shufflerCounter][1]);
+        }
+    }
+    tmpArray = [];
+    shufflerCounter = 0;
+
+    return [tmpX, tmpY];
+}
+
 _.extend(Neural_Network.prototype, {
     exit: function (){
         computeCluster.exit();
     },
     train: function (options, callback) {
+        console.log('starting training');
         var that = this;
 
         var processPaused = false;
@@ -89,6 +122,7 @@ _.extend(Neural_Network.prototype, {
         var numberOfProcessedExamples = 0;
         var numberOfOptimizingIterations = 0;
         var lambda = options.lambda || 1e-10;
+        var reshuffledTrainingSet = [];
 
         var numberOfFeatures = trainingSetInput[0].length;
         var numberOfOutputUnits = trainingSetOutput[0].length;
@@ -121,8 +155,8 @@ _.extend(Neural_Network.prototype, {
                 console.log('Number of optimizing iterations: %s, current cost: %s, gradient scalar: %s, thetaVecSize: %s', numberOfOptimizingIterations, totalCost, gradientScalar, thetaVecScalar);
             }
         };
-        var reshuffle = function (trainingSetInput,trainingSetOutput) {
-            reshuffledTrainingSet = shuffler.reshuffle(numeric.clone(trainingSetInput), numeric.clone(trainingSetOutput));
+        var reshuffleTrainingSet = function (trainingSetInput,trainingSetOutput) {
+            reshuffledTrainingSet = reshuffle(numeric.clone(trainingSetInput), numeric.clone(trainingSetOutput));
 
             trainingSetInput = reshuffledTrainingSet[0];
             trainingSetOutput = reshuffledTrainingSet[1];
@@ -134,22 +168,45 @@ _.extend(Neural_Network.prototype, {
             thetaVectors.Theta3.vector = numeric.sub(thetaVectors.Theta3.vector, numeric.mul(learningRate, D3));
         };
 
+        var trainingRegressionCounter = 0;
+        var D1 = [];
+        var D2 = [];
+        var D3 = [];
+
+        var gradientScalar = 0;
+        var thetaVecScalar = 0;
+        var totalCost = 0;
+        var batchSize = 0;
+
+        var trainingSetSliceStart = 0;
+        var trainingSetSliceEnd = 0;
+        var trainingSetInputSlice = [] ;
+        var trainingSetOutputSlice = [];
+        var k;
+        var allNodesFinished = false;
+
+
         var processTrainingExamples = function () {
-            var trainingRegressionCounter = numberOfNodes;
-            var D1 = numeric.rep([thetaVectors.Theta1.vector.length], 0);
-            var D2 = numeric.rep([thetaVectors.Theta2.vector.length], 0);
-            var D3 = numeric.rep([thetaVectors.Theta3.vector.length], 0);
 
-            var gradientScalar = 0;
-            var thetaVecScalar = 0;
-            var totalCost = 0;
-            var batchSize = 0;
+            trainingRegressionCounter = numberOfNodes;
+            D1 = thetaVectors.Theta1.vector.map(function () {return 0;});
+            D2 = thetaVectors.Theta2.vector.map(function () {return 0;});
+            D3 = thetaVectors.Theta3.vector.map(function () {return 0;});
 
-            for (var k = 0; k < numberOfNodes; k++) {
-                var trainingSetSliceStart = numberOfProcessedExamples + numberOfExamplesPerNode * k;
-                var trainingSetSliceEnd = numberOfProcessedExamples + numberOfExamplesPerNode * (k + 1);
-                var trainingSetInputSlice = trainingSetInput.slice(trainingSetSliceStart, trainingSetSliceEnd);
-                var trainingSetOutputSlice = trainingSetOutput.slice(trainingSetSliceStart, trainingSetSliceEnd);
+            //D3 = numeric.rep([thetaVectors.Theta3.vector.length], 0);
+
+            gradientScalar = 0;
+            thetaVecScalar = 0;
+            totalCost = 0;
+            batchSize = 0;
+
+
+            for (k = 0; k < numberOfNodes; k++) {
+//                console.log('starting in node: ', k);
+                trainingSetSliceStart = numberOfProcessedExamples + numberOfExamplesPerNode * k;
+                trainingSetSliceEnd = numberOfProcessedExamples + numberOfExamplesPerNode * (k + 1);
+                trainingSetInputSlice = trainingSetInput.slice(trainingSetSliceStart, trainingSetSliceEnd);
+                trainingSetOutputSlice = trainingSetOutput.slice(trainingSetSliceStart, trainingSetSliceEnd);
 
                 batchSize += trainingSetInputSlice.length;
 
@@ -162,21 +219,24 @@ _.extend(Neural_Network.prototype, {
                     Y: trainingSetOutputSlice
                 }, function (err, nnTrainingCoreResult) {
 
+                    nnTrainingCoreResult = nnTrainingCoreResult;
+
+
                     D1 = numeric.add(D1, nnTrainingCoreResult.D1);
                     D2 = numeric.add(D2, nnTrainingCoreResult.D2);
                     D3 = numeric.add(D3, nnTrainingCoreResult.D3);
                     totalCost += nnTrainingCoreResult.cost;
 
 
-                    var allNodesFinished = --trainingRegressionCounter === 0;
+                    allNodesFinished = --trainingRegressionCounter === 0;
 
                     if (allNodesFinished) {
 
                         numberOfProcessedExamples += batchSize;
 
-                        D1 = numeric.mul(1/batchSize, D1);
-                        D2 = numeric.mul(1/batchSize, D2);
-                        D3 = numeric.mul(1/batchSize, D3);
+                        D1 = D1.map(function (el) {return el/batchSize});
+                        D2 = D2.map(function (el) {return el/batchSize});
+                        D3 = D3.map(function (el) {return el/batchSize});
 
                         totalCost = totalCost / batchSize;
 
@@ -192,6 +252,17 @@ _.extend(Neural_Network.prototype, {
 
                         if (numberOfProcessedExamples < trainingSetInput.length - numberOfExamplesPerNode * numberOfNodes) {
                             stepInGradientDirection(D1, D2, D3);
+
+                            trainingRegressionCounter = 0;
+                            D1 = [];
+                            D2 = [];
+                            D3 = [];
+
+                            gradientScalar = 0;
+                            thetaVecScalar = 0;
+                            totalCost = 0;
+                            batchSize = 0;
+
                             processTrainingExamples();
                         } else {
                             ++numberOfOptimizingIterations;
@@ -201,8 +272,19 @@ _.extend(Neural_Network.prototype, {
                                 endTraining(err, totalCost, initialThetaVec, callback);
                             } else {
                                 resetNumberOfProcessedExamples();
-                                reshuffle(trainingSetInput, trainingSetOutput);
+                                reshuffleTrainingSet(trainingSetInput, trainingSetOutput);
                                 stepInGradientDirection(D1, D2, D3);
+
+                                trainingRegressionCounter = 0;
+                                D1 = [];
+                                D2 = [];
+                                D3 = [];
+
+                                gradientScalar = 0;
+                                thetaVecScalar = 0;
+                                totalCost = 0;
+                                batchSize = 0;
+
                                 processTrainingExamples();
                             }
                         }

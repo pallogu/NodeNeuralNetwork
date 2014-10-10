@@ -15,11 +15,13 @@
     "underscore": "~1.5.2"
   },
   "devDependencies": {
-    "numeric": "~1.2.6",
+    "chai": "^1.9.2",
     "compute-cluster": "0.0.7",
+    "eigenjs": "0.0.77",
     "knuth-shuffle": "~1.0.0",
     "lodash": "~2.4.1",
-    "eigenjs": "0.0.77"
+    "mocha": "^1.21.4",
+    "numeric": "~1.2.6"
   },
   "scripts": {
     "test": "node tests/numericGradientTest.js; node tests/train.js"
