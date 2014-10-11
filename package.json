@@ -1,6 +1,6 @@
 {
   "name": "neural_network",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Neural network implementation with backpropagation. It uses map reduce to distribute the computation of cost function and it's gradients. It also implements stochastic/step/batch gradient descent for optimizing cost function",
   "main": "neural_network.js",
   "files": [
@@ -10,18 +10,15 @@
   ],
   "dependencies": {
     "compute-cluster": "~0.0.7",
-    "numeric": "~1.2.6",
     "knuth-shuffle": "~1.0.0",
-    "underscore": "~1.5.2"
+    "lodash": "~1.5.2"
   },
   "devDependencies": {
     "chai": "^1.9.2",
     "compute-cluster": "0.0.7",
-    "eigenjs": "0.0.77",
     "knuth-shuffle": "~1.0.0",
     "lodash": "~2.4.1",
-    "mocha": "^1.21.4",
-    "numeric": "~1.2.6"
+    "mocha": "^1.21.4"
   },
   "scripts": {
     "test": "node tests/numericGradientTest.js; node tests/train.js"

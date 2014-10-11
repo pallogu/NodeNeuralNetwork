@@ -150,4 +150,62 @@ describe('Linear Algebra Helper', function () {
             expect(matWithZeros).to.deep.equal(exptectedMatrix);
         });
     });
+
+    describe('computeD', function () {
+        it('should return a vector with correctly computed values', function () {
+            var d = [[11, 12], [21, 22],[31, 32]];
+            var Theta = [[100, 110, 120],[200, 210, 220]];
+            var ab = [[1, 1.1, 1.2],[1, 2.1, 2.2],[1, 3.1, 3.2]];
+            var expectedMatrix = [
+                [
+//                    (Theta[0][0]*d[0][0] + Theta[1][0]*d[0][1]) * ab[0][0] * (1 - ab[0][0]),
+                    (Theta[0][1]*d[0][0] + Theta[1][1]*d[0][1]) * ab[0][1] * (1 - ab[0][1]),
+                    (Theta[0][2]*d[0][0] + Theta[1][2]*d[0][1]) * ab[0][2] * (1 - ab[0][2])
+                ],
+                [
+//                    (Theta[0][0]*d[1][0] + Theta[1][0]*d[1][1]) * ab[1][0] * (1 - ab[1][0]),
+                    (Theta[0][1]*d[1][0] + Theta[1][1]*d[1][1]) * ab[1][1] * (1 - ab[1][1]),
+                    (Theta[0][2]*d[1][0] + Theta[1][2]*d[1][1]) * ab[1][2] * (1 - ab[1][2])
+                ],
+                [
+//                    (Theta[0][0]*d[2][0] + Theta[1][0]*d[2][1]) * ab[2][0] * (1 - ab[2][0]),
+                    (Theta[0][1]*d[2][0] + Theta[1][1]*d[2][1]) * ab[2][1] * (1 - ab[2][1]),
+                    (Theta[0][2]*d[2][0] + Theta[1][2]*d[2][1]) * ab[2][2] * (1 - ab[2][2])
+                ]
+            ];
+
+            var d2 = la.computeD(Theta,d, ab);
+
+            expect(d2).to.deep.equal(expectedMatrix);
+        });
+    });
+
+    describe('computeDTensorSlice', function () {
+        it('should return a matrix with the size of Theta matrix', function () {
+            var d = [11, 12];
+            //var Theta = [[100, 110, 120],[200, 210, 220]];
+            var ab = [1, 1.1, 1.2];
+            var expectedMatrix = [
+                [ab[0]*d[0], ab[1]*d[0], ab[2]*d[0]],
+                [ab[0]*d[1], ab[1]*d[1], ab[2]*d[1]]
+            ];
+
+            var DMat = la.computeDTensorSlice(ab,d);
+
+            expect(DMat).to.deep.equal(expectedMatrix);
+        });
+    });
+
+    describe.only('computeCost', function () {
+        it('should return cost without regularisation part', function () {
+            var a = [[1],[0.5]];
+            var y = [[0],[1]];
+
+            var expectedCost = -1*y[0][0] * Math.log(a[0][0]) - (1 - y[0][0])*Math.log(1 - a[0][0]);
+            expectedCost -= -1*y[1][0] * Math.log(a[1][0]) - (1 - y[1][0])*Math.log(1 - a[1][0]);
+
+            var cost = la.computeCost(a, y);
+            expect(cost).to.equal(expectedCost);
+        });
+    });
 });

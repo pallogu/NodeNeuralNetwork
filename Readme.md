@@ -2,7 +2,7 @@
 ##Description
 This is a nodejs implementation of dense neural network with two hidden layer and one category output layer.
 
-It uses [compute cluster](https://github.com/lloyd/node-compute-cluster) for splitting the work into multiple cores and [numeric](http://www.numericjs.com/documentation.html) for linear algebra computations - basically vectorized implementation.
+It uses [compute cluster](https://github.com/lloyd/node-compute-cluster) for splitting the work into multiple cores.
 
 For cost function optimisation, one can use batch/mini-batches/stochastic gradient descent.
 
@@ -104,7 +104,7 @@ Set for example:
 
 ## Some implementation notes
 
-Neural network training uses matrices and vectors and for computation uses numeric.js numerical library so please use it. In other words you have to find a balance between numberOfExamplesPerNode and numberOfNodes for mini batch gradient descent.
+In other words you have to find a balance between numberOfExamplesPerNode and numberOfNodes for mini batch gradient descent.
 
 ## Copyright
 
