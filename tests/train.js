@@ -31,14 +31,14 @@ var setup = {
 }
 
 nn.train(setup, function (err, model) {
-    var predictionCounter = 4;
-
-    var updatePredictionCounter = function () {
-        predictionCounter--;
-        if(predictionCounter === 0) {
-            nn.exit();
-        }
-    }
+//    var predictionCounter = 4;
+//
+//    var updatePredictionCounter = function () {
+//        predictionCounter--;
+//        if(predictionCounter === 0) {
+//            nn.exit();
+//        }
+//    }
 
     var predictionOptions = {
         numberOfActivationUnitsL1: 4,
@@ -50,27 +50,27 @@ nn.train(setup, function (err, model) {
     nn.predict(predictionOptions, function (err, probability){
         assert.equal(probability < 0.01, true);
         console.log('probability that [0,0] would be positive', probability);
-        updatePredictionCounter();
+//        updatePredictionCounter();
     });
 
     predictionOptions.inputVector = [0,1];
     nn.predict(predictionOptions, function (err, probability){
         assert.equal(probability > 0.99, true);
         console.log('probability that [0,1] would be positive', probability);
-        updatePredictionCounter();
+//        updatePredictionCounter();
     });
 
     predictionOptions.inputVector = [1,0];
     nn.predict(predictionOptions, function (err, probability){
         assert.equal(probability > 0.99, true);
         console.log('probability that [1,0] would be positive', probability);
-        updatePredictionCounter();
+//        updatePredictionCounter();
     });
 
     predictionOptions.inputVector = [1,1];
     nn.predict(predictionOptions, function (err, probability){
         assert.equal(probability < 0.01, true);
         console.log('probability that [1,1] would be positive', probability);
-        updatePredictionCounter();
+//        updatePredictionCounter();
     });
 });

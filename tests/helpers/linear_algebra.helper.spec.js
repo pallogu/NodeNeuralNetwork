@@ -2,9 +2,6 @@ var expect = require('chai').expect;
 var la = require('../../helpers/linear_algebra.helper.js');
 
 describe('Linear Algebra Helper', function () {
-    it('instantiation', function () {
-        expect(la.constructor.name).to.equal('LinearAlgebraHelper');
-    });
 
     describe('Clone 2d matrix method', function () {
         it('should make a copy of matrix', function () {
@@ -196,7 +193,7 @@ describe('Linear Algebra Helper', function () {
         });
     });
 
-    describe.only('computeCost', function () {
+    describe('computeCost', function () {
         it('should return cost without regularisation part', function () {
             var a = [[1],[0.5]];
             var y = [[0],[1]];
@@ -206,6 +203,18 @@ describe('Linear Algebra Helper', function () {
 
             var cost = la.computeCost(a, y);
             expect(cost).to.equal(expectedCost);
+        });
+    });
+
+    describe.only('computeNextLayer', function () {
+        it('should combine couple of methods', function () {
+            var awb = [[1, 11, 12],[1, 21, 22],[1, 31, 32]];
+            var Theta = [[1, 1.1, 1.2],[2, 2.1, 2.2]];
+            var expectedLayer = la.addBias(la.computeA(la.computeZ(Theta, awb)));
+
+            var nextLayer = la.computeNextLayer(Theta, awb);
+
+            expect(nextLayer).to.deep.equal(expectedLayer);
         });
     });
 });

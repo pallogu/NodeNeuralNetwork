@@ -1,54 +1,49 @@
 /*global process:true*/
-
+'use strict';
 (function () {
+
+//    var La = require('./linear_algebra.helper.js');
     var la = require('./linear_algebra.helper.js');
-    var Theta1;
-    var Theta2;
-    var Theta3;
-    var trainingSetInput;
-    var trainingSetOutput;
-    var lambda;
-    var a1WithBias;
-    var z2;
-    var a2;
-    var a2WithBias;
-    var z3;
-    var a3;
-    var a3WithBias;
-    var z4;
-    var a4;
-    var Theta1WithZeros;
-    var Theta2WithZeros;
-    var Theta3WithZeros;
-    var cost;
-    var d3;
-    var d2;
-    var d1;
-    var D1;
-    var D2;
-    var D3;
-    var exampleIndex;
-    var l;
-    var trainingResult;
 
-    var computeGradientsWithCost = function (options) {
+//    var memwatch = require('memwatch');
 
-        Theta1 = options.Theta1;
-        Theta2 = options.Theta2;
-        Theta3 = options.Theta3;
-        trainingSetInput = options.trainingSetInput;
-        trainingSetOutput = options.trainingSetOutput;
-        lambda = options.lambda;
+//    memwatch.on('leak', function(info) {
+//        console.log(info);
+//    });
+
+
+
+    var computeGradientsWithCost = function (setup) {
+
+        var parsedSetup = JSON.parse(setup);
+
+        var Theta1 = parsedSetup.Theta1;
+        var Theta2 = parsedSetup.Theta2;
+        var Theta3 = parsedSetup.Theta3;
+        var trainingSetInput = parsedSetup.X;
+        var trainingSetOutput = parsedSetup.Y;
+        var lambda = parsedSetup.lambda;
+        var a1WithBias;
+        var a2WithBias;
+        var a3WithBias;
+        var a4;
+        var Theta1WithZeros;
+        var Theta2WithZeros;
+        var Theta3WithZeros;
+        var cost;
+        var d3;
+        var d2;
+        var d1;
+        var D1;
+        var D2;
+        var D3;
+        var exampleIndex;
+        var l;
 
         a1WithBias = la.addBias(trainingSetInput);
-        z2 = la.computeZ(Theta1, a1WithBias);
-        a2 = la.computeA(z2);
-        a2WithBias = la.addBias(a2);
-        z3 = la.computeZ(Theta2, a2WithBias);
-        a3 = la.computeA(z3);
-        a3WithBias = la.addBias(a3);
-        z4 = la.computeZ(Theta3,a3WithBias);
-        a4 = la.computeA(z4);
+        a2WithBias = la.addBias(la.computeA(la.computeZ(Theta1, a1WithBias)));
+        a3WithBias = la.addBias(la.computeA(la.computeZ(Theta2, a2WithBias)));
+        a4 = la.computeA(la.computeZ(Theta3,a3WithBias));
 
         Theta1WithZeros = la.setFirstColumnToZeros(Theta1);
         Theta2WithZeros = la.setFirstColumnToZeros(Theta2);
@@ -76,38 +71,26 @@
             D3 = la.add2DMatrices(D3, la.computeDTensorSlice(a3WithBias[exampleIndex], d3[exampleIndex]));
         }
 
-
-
-
         if(lambda) {
             D1 = la.add2DMatrices(D1, la.mul2DMatrixByScalar(Theta1WithZeros,lambda));
             D2 = la.add2DMatrices(D2, la.mul2DMatrixByScalar(Theta2WithZeros,lambda));
             D3 = la.add2DMatrices(D3, la.mul2DMatrixByScalar(Theta3WithZeros,lambda));
         }
-
-        return {
+        var result = JSON.stringify({
             cost: cost,
             prediction: a4,
             D1: D1,
             D2: D2,
             D3: D3
-        };
+        });
+
+        return result
     };
 
 
     process.on('message', function (setup) {
         'use strict';
-
-        trainingResult = computeGradientsWithCost({
-            Theta1: setup.Theta1,
-            Theta2: setup.Theta2,
-            Theta3: setup.Theta3,
-            trainingSetInput: setup.X,
-            trainingSetOutput: setup.Y,
-            lambda: setup.lambda
-        });
-
-        process.send(trainingResult);
+        process.send(computeGradientsWithCost(setup));
     });
 
 })();

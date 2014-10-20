@@ -2,6 +2,8 @@ var _ = require('lodash');
 var assert = require('assert');
 var la = require('../helpers/linear_algebra.helper');
 
+var cp = require('child_process');
+
 var path = require('path');
 
 const ComputeCluster = require('compute-cluster');
