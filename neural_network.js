@@ -2,13 +2,16 @@ var _ = require('lodash');
 var os = require('os');
 var path = require('path');
 
+var util = require('util');
+
 var knuthShuffle = require('knuth-shuffle').knuthShuffle;
-//var La = require('./helpers/linear_algebra.helper.js');
-var la = require('./helpers/linear_algebra.helper.js');
+var La = require('./helpers/linear_algebra.helper.js');
 
 var cp = require('child_process');
 
 var memwatch = require('memwatch');
+
+//memwatch.on('stats', function(stats) { console.log('\n\n', stats) });
 
 
 //memwatch.on('leak', function(info) {
@@ -30,6 +33,39 @@ var memwatch = require('memwatch');
 //});
 
 var Neural_Network = function () {};
+
+var tmpArray = [];
+var tmpX = [];
+var tmpY = [];
+var shufflerCounter= 0;
+
+var reshuffle = function (Xmatrix, Ymatrix) {
+    'use strict';
+
+    tmpArray = [];
+    tmpX = [];
+    tmpY = [];
+    shufflerCounter;
+
+    if(Xmatrix.length !== Ymatrix.length) {
+        throw 'Shuffler: reshuffle method: Length of arrays do not match';
+    } else {
+        for(shufflerCounter = 0; shufflerCounter < Xmatrix.length; shufflerCounter = shufflerCounter + 1) {
+            tmpArray.push([Xmatrix[shufflerCounter], Ymatrix[shufflerCounter]]);
+        }
+
+        knuthShuffle(tmpArray);
+
+        for(shufflerCounter = 0; shufflerCounter < Xmatrix.length; shufflerCounter = shufflerCounter + 1) {
+            tmpX.push(tmpArray[shufflerCounter][0]);
+            tmpY.push(tmpArray[shufflerCounter][1]);
+        }
+    }
+    tmpArray = [];
+    shufflerCounter = 0;
+
+    return [tmpX, tmpY];
+};
 
 var splitThetaIntoMatrices = function (setup) {
     var ThetaVec = setup.ThetaVec;
@@ -68,43 +104,10 @@ var splitThetaIntoMatrices = function (setup) {
     }
 };
 
-var tmpArray = [];
-var tmpX = [];
-var tmpY = [];
-var shufflerCounter= 0;
-
-var reshuffle = function (Xmatrix, Ymatrix) {
-    'use strict';
-
-    tmpArray = [];
-    tmpX = [];
-    tmpY = [];
-    shufflerCounter;
-
-    if(Xmatrix.length !== Ymatrix.length) {
-        throw 'Shuffler: reshuffle method: Length of arrays do not match';
-    } else {
-        for(shufflerCounter = 0; shufflerCounter < Xmatrix.length; shufflerCounter = shufflerCounter + 1) {
-            tmpArray.push([Xmatrix[shufflerCounter], Ymatrix[shufflerCounter]]);
-        }
-
-        knuthShuffle(tmpArray);
-
-        for(shufflerCounter = 0; shufflerCounter < Xmatrix.length; shufflerCounter = shufflerCounter + 1) {
-            tmpX.push(tmpArray[shufflerCounter][0]);
-            tmpY.push(tmpArray[shufflerCounter][1]);
-        }
-    }
-    tmpArray = [];
-    shufflerCounter = 0;
-
-    return [tmpX, tmpY];
-};
-
 _.extend(Neural_Network.prototype, {
     train: function (options, callback) {
         console.log('startTraining');
-        var that = this;
+        var self = this;
 
 //        var processPaused = false;
 //        var stdinHandler = function( key ){
@@ -122,52 +125,122 @@ _.extend(Neural_Network.prototype, {
 //        };
 //
 //        stdin.on( 'data', stdinHandler);
+        var la = new La();
 
-        var trainingSetInput = options.trainingSetInput;
-        var trainingSetOutput = options.trainingSetOutput;
-        var numberOfNodes = options.numberOfNodes || os.cpus().length;
-        var numberOfExamplesPerNode = options.numberOfExamplesPerNode || 1;
-        var maxCostError = options.maxCostError || 0.01;
-        var maxGradientSize = options.maxGradientSize || 1e-10;
-        var learningRate = options.learningRate || 1;
-        var maxNoOfIterations = options.maxNoOfIterations || Number.MAX_VALUE;
-        var lambda = options.lambda;
-        var verboseMode = options.verboseMode || false;
-        var numberOfActivationUnitsL1 = options.numberOfActivationUnitsL1;
-        var numberOfActivationUnitsL2 = options.numberOfActivationUnitsL2;
 
-        var numberOfOptimizingIterations = 0;
+        var initialThetaVec = options.model || la.randomVector((options.trainingSetInput[0].length + 1) * options.numberOfActivationUnitsL1 + (options.numberOfActivationUnitsL1 + 1) * options.numberOfActivationUnitsL2 + options.numberOfActivationUnitsL2 + 1, 0.5);
 
-        var initialThetaVec = options.model || la.randomVector((trainingSetInput[0].length + 1) * numberOfActivationUnitsL1 + (numberOfActivationUnitsL1 + 1) * numberOfActivationUnitsL2 + numberOfActivationUnitsL2 + 1, 0.5);
+        this.numberOfFeatures = options.trainingSetInput[0].length;
+        this.numberOfOutputUnits = options.trainingSetOutput[0].length;
+        this.numberOfActivationUnitsL1 = options.numberOfActivationUnitsL1;
+        this.numberOfActivationUnitsL2 = options.numberOfActivationUnitsL2;
 
         var thetas = splitThetaIntoMatrices({
             ThetaVec: initialThetaVec,
-            numberOfActivationUnitsL1: numberOfActivationUnitsL1,
-            numberOfActivationUnitsL2: numberOfActivationUnitsL2,
-            numberOfFeatures: trainingSetInput[0].length,
-            numberOfOutputUnits: trainingSetOutput[0].length
+            numberOfActivationUnitsL1: options.numberOfActivationUnitsL1,
+            numberOfActivationUnitsL2: options.numberOfActivationUnitsL2,
+            numberOfFeatures: options.trainingSetInput[0].length,
+            numberOfOutputUnits: options.trainingSetOutput[0].length
         });
 
+        this.numberOfNodes = options.numberOfNodes || os.cpus().length;
+        this.numberOfExamplesPerNode = options.numberOfExamplesPerNode || 1;
+        this.maxCostError =  options.maxCostError || 0.01;
+        this.maxGradientSize = options.maxGradientSize || 1e-10;
+        this.learningRate = options.learningRate || 1;
+        this.maxNumberOfIterations = options.maxNoOfIterations || Number.MAX_VALUE;
+        this.lambda = options.lambda;
+        this.verboseMode = options.verboseMode || false;
+        this.numberOfOptimizingIterations = 0;
+        this.trainingSetInput = options.trainingSetInput;
+        this.trainingSetOutput = options.trainingSetOutput;
 
-        var endTraining = function (totalCost, callback) {
+        this.executeTrainingLoop(JSON.stringify(thetas), callback);
+
+    },
+    executeTrainingLoop: function (stringifiedThetas, callback) {
+        global.gc();
+        var hd = new memwatch.HeapDiff();
+
+        var self = this;
+
+        var la = new La();
+        var thetas = JSON.parse(stringifiedThetas);
+        stringifiedThetas = null;
+
+        var D1 = la.create2DMatrix(thetas.Theta1.length, thetas.Theta1[0].length);
+        var D2 = la.create2DMatrix(thetas.Theta2.length, thetas.Theta2[0].length);
+        var D3 = la.create2DMatrix(thetas.Theta3.length, thetas.Theta3[0].length);
+
+        var trainingSetSliceStart = 0;
+        var trainingSetSliceEnd = 0;
+        var trainingSetInputSlice = [] ;
+        var trainingSetOutputSlice = [];
+        var trainingRegressionCounter = self.numberOfNodes;
+
+        var gradientScalar = 0;
+        var thetaVecScalar = 0;
+        var totalCost = 0;
+        var batchSize = 0;
+        var k;
+        var allNodesFinished = false;
+
+
+        var helpers = [];
+
+        for (k = 0; k < self.numberOfNodes; k++) {
+            var helper = cp.fork(path.join(__dirname, 'helpers/neural_network.helper.js'));
+            helper.once('message', processHelperResult);
+            helpers.push(helper);
+
+            trainingSetSliceStart = self.numberOfExamplesPerNode * k;
+            trainingSetSliceEnd = self.numberOfExamplesPerNode * (k + 1);
+            trainingSetInputSlice = this.trainingSetInput.slice(trainingSetSliceStart, trainingSetSliceEnd);
+            trainingSetOutputSlice = this.trainingSetOutput.slice(trainingSetSliceStart, trainingSetSliceEnd);
+
+            batchSize += trainingSetInputSlice.length;
+
+            var setup = JSON.stringify({
+                batchSize: batchSize,
+                Theta1 : thetas.Theta1,
+                Theta2 : thetas.Theta2,
+                Theta3 : thetas.Theta3,
+                lambda: self.lambda,
+                X: trainingSetInputSlice,
+                Y: trainingSetOutputSlice
+            });
+
+            trainingSetInputSlice = null;
+            trainingSetOutputSlice = null;
+
+            helpers[k].send(setup);
+            setup  = null;
+        }
+
+
+        var endTraining = function endTraining (totalCost, callback) {
             console.log('finished with final cost: ', totalCost);
             console.timeEnd('Time required to train:');
 
 //            stdin.pause();
 //            stdin.removeAllListeners();
 //            stdin = null;
-            for(k = 0; k < numberOfNodes; k++) {
-                helpers[k].kill('SIGHUP');
+            for(k = 0; k < self.numberOfNodes; k++) {
+                helpers[k].kill('SIGKILL');
             }
 
-            callback.call(that, null, _.flatten(thetas.Theta1).concat(_.flatten(thetas.Theta2), _.flatten(thetas.Theta3)));
+            callback.call(self, null, _.flatten(thetas.Theta1).concat(thetas.Theta2).concat(thetas.Theta3));
         };
-        var reportProgress = function (totalCost, gradientScalar, thetaVecScalar) {
-            if (verboseMode && numberOfOptimizingIterations % 1 === 0) {
-                console.log('Number of optimizing iterations: %s, current cost: %s, gradient scalar: %s, thetaVecSize: %s', numberOfOptimizingIterations, totalCost, gradientScalar, thetaVecScalar);
+
+        var reportProgress = function reportProgress () {
+            if (self.verboseMode && self.numberOfOptimizingIterations % 1 === 0) {
+//                global.gc();
+                console.log('%d, %d', self.numberOfOptimizingIterations, util.inspect(process.memoryUsage().rss));
+                console.log('Number of optimizing iterations: %s, current cost: %s, gradient scalar: %s, thetaVecSize: %s', self.numberOfOptimizingIterations, totalCost, gradientScalar, thetaVecScalar);
             }
         };
-        var reshuffleTrainingSet = function (trainingSetInput,trainingSetOutput) {
+
+        var reshuffleTrainingSet = function reshuffleTrainingSet (trainingSetInput,trainingSetOutput) {
 
             var reshuffledTrainingSet = [];
             reshuffledTrainingSet = reshuffle(la.clone2dMatrix(trainingSetInput), la.clone2dMatrix(trainingSetOutput));
@@ -176,115 +249,113 @@ _.extend(Neural_Network.prototype, {
             trainingSetOutput = reshuffledTrainingSet[1];
         };
 
-        var trainingRegressionCounter = 0;
-        var D1 = [];
-        var D2 = [];
-        var D3 = [];
-
-        var gradientScalar = 0;
-        var thetaVecScalar = 0;
-        var totalCost = 0;
-        var batchSize = 0;
-
-        var trainingSetSliceStart = 0;
-        var trainingSetSliceEnd = 0;
-        var trainingSetInputSlice = [] ;
-        var trainingSetOutputSlice = [];
-        var k;
-        var allNodesFinished = false;
-
-        var processHelperResult = function (helperResult) {
-
-            var r = JSON.parse(helperResult)
-
+        var addToDerivates = function addToDerivates (r) {
             D1 = la.add2DMatrices(D1, r.D1);
             D2 = la.add2DMatrices(D2, r.D2);
             D3 = la.add2DMatrices(D3, r.D3);
+        }
+
+        var makeAStep = function () {
+            thetas.Theta1 = la.sub2DMatrices(thetas.Theta1, la.mul2DMatrixByScalar(D1, self.learningRate));
+            thetas.Theta2 = la.sub2DMatrices(thetas.Theta2, la.mul2DMatrixByScalar(D2, self.learningRate));
+            thetas.Theta3 = la.sub2DMatrices(thetas.Theta3, la.mul2DMatrixByScalar(D3, self.learningRate));
+        }
+
+        var computeThetaScalar = function () {
+            thetaVecScalar = la.sumOfSquares(thetas.Theta1);
+            thetaVecScalar += la.sumOfSquares(thetas.Theta2);
+            thetaVecScalar += la.sumOfSquares(thetas.Theta3);
+            thetaVecScalar = Math.sqrt(thetaVecScalar);
+        };
+
+        var computeGradientScalar = function () {
+            gradientScalar = la.sumOfSquares(D1);
+            gradientScalar += la.sumOfSquares(D2);
+            gradientScalar += la.sumOfSquares(D3);
+            gradientScalar = Math.sqrt(gradientScalar);
+        };
+
+        var getNewSetup = function () {
+            return JSON.stringify(thetas);
+        };
+
+        function processHelperResult (helperResult) {
+
+            var r = JSON.parse(helperResult)
+
+            addToDerivates(r);
             totalCost += r.cost;
 
             r = null;
+            helperResult = null;
 
             allNodesFinished = --trainingRegressionCounter === 0;
 
             if (allNodesFinished) {
-//
-//                var hd = new memwatch.HeapDiff();
 
-                D1 = la.mul2DMatrixByScalar(D1, 1/batchSize);
-                D2 = la.mul2DMatrixByScalar(D2, 1/batchSize);
-                D3 = la.mul2DMatrixByScalar(D3, 1/batchSize);
+                computeThetaScalar();
 
-                totalCost = totalCost / batchSize;
+                computeGradientScalar();
 
-                thetaVecScalar = la.sumOfSquares(thetas.Theta1);
-                thetaVecScalar += la.sumOfSquares(thetas.Theta2);
-                thetaVecScalar += la.sumOfSquares(thetas.Theta3);
-                thetaVecScalar = Math.sqrt(thetaVecScalar);
+                ++self.numberOfOptimizingIterations;
+                reportProgress();
 
-                gradientScalar = la.sumOfSquares(D1);
-                gradientScalar += la.sumOfSquares(D2);
-                gradientScalar += la.sumOfSquares(D3);
-                gradientScalar = Math.sqrt(gradientScalar);
-
-                ++numberOfOptimizingIterations;
-                reportProgress(totalCost, gradientScalar, thetaVecScalar);
-
-                if (numberOfOptimizingIterations > maxNoOfIterations || totalCost < maxCostError || gradientScalar < maxGradientSize) {
+                if (self.numberOfOptimizingIterations > self.maxNoOfIterations || totalCost < self.maxCostError || gradientScalar < self.maxGradientSize) {
                     endTraining(totalCost, callback);
                 } else {
 
-                    reshuffleTrainingSet(trainingSetInput, trainingSetOutput);
-                    thetas.Theta1 = la.sub2DMatrices(thetas.Theta1, la.mul2DMatrixByScalar(D1, learningRate));
-                    thetas.Theta2 = la.sub2DMatrices(thetas.Theta2, la.mul2DMatrixByScalar(D2, learningRate));
-                    thetas.Theta3 = la.sub2DMatrices(thetas.Theta3, la.mul2DMatrixByScalar(D3, learningRate));
+                    reshuffleTrainingSet(self.trainingSetInput, self.trainingSetOutput);
+                    makeAStep();
 
-//                    var diff = hd.end();
-//                    console.log(diff);
+                    var setup = getNewSetup();
 
-                    distributeToCores();
+                    var t = setTimeout(function () {
+                        for (k = 0; k < self.numberOfNodes; k++) {
+                            helpers[k].removeAllListeners();
+                            helpers[k].kill('SIGKILL');
+
+                        }
+                        la = null;
+                        D1 = null;
+                        D2 = null;
+                        D3 = null;
+                        thetas.Theta1 = null;
+                        thetas.Theta2 = null;
+                        thetas.Theta3 = null;
+                        thetas = null;
+                        trainingSetSliceStart = null;
+                        trainingSetSliceEnd = null;
+                        trainingSetInputSlice = null ;
+                        trainingSetOutputSlice = null;
+                        trainingRegressionCounter = null;
+                        gradientScalar = null;
+                        thetaVecScalar = null;
+                        totalCost = null;
+                        batchSize = null;
+                        k = null;
+                        allNodesFinished = null;
+                        addToDerivates = null;
+                        reshuffleTrainingSet = null;
+                        reportProgress = null;
+                        endTraining = null;
+
+
+                        t = null;
+
+                        self.executeTrainingLoop.call(self, setup, callback);
+                        setup = null;
+                        self = null;
+                        processHelperResult = null;
+
+                        global.gc();
+                        var diff = hd.end();
+                        console.log(diff.change);
+
+                    },1);
                 }
             }
         };
 
-        var helpers = [];
-        for (k = 0; k < numberOfNodes; k++) {
-            var helper = cp.fork(path.join(__dirname, 'helpers/neural_network.helper.js'));
-            helper.on('message', processHelperResult);
-            helpers.push(helper);
-        }
-
-        var distributeToCores = function () {
-            trainingRegressionCounter = numberOfNodes;
-
-            D1 = la.create2DMatrix(thetas.Theta1.length, thetas.Theta1[0].length);
-            D2 = la.create2DMatrix(thetas.Theta2.length, thetas.Theta2[0].length);
-            D3 = la.create2DMatrix(thetas.Theta3.length, thetas.Theta3[0].length);
-
-            gradientScalar = 0;
-            thetaVecScalar = 0;
-            totalCost = 0;
-            batchSize = 0;
-
-            for (k = 0; k < numberOfNodes; k++) {
-                trainingSetSliceStart = numberOfExamplesPerNode * k;
-                trainingSetSliceEnd = numberOfExamplesPerNode * (k + 1);
-                trainingSetInputSlice = trainingSetInput.slice(trainingSetSliceStart, trainingSetSliceEnd);
-                trainingSetOutputSlice = trainingSetOutput.slice(trainingSetSliceStart, trainingSetSliceEnd);
-
-                batchSize += trainingSetInputSlice.length;
-
-                helpers[k].send(JSON.stringify({
-                    Theta1: thetas.Theta1,
-                    Theta2: thetas.Theta2,
-                    Theta3: thetas.Theta3,
-                    lambda: lambda,
-                    X: trainingSetInputSlice,
-                    Y: trainingSetOutputSlice
-                }));
-            }
-        };
-
-        distributeToCores();
         console.time('Time required to train:');
     },
     predict: function (opts, callback) {
@@ -294,7 +365,6 @@ _.extend(Neural_Network.prototype, {
         var numberOfActivationUnitsL2 = opts.numberOfActivationUnitsL2;
         var model = opts.model;
 
-
         var thetas = splitThetaIntoMatrices({
             ThetaVec: model,
             numberOfActivationUnitsL1: numberOfActivationUnitsL1,
@@ -303,7 +373,9 @@ _.extend(Neural_Network.prototype, {
             numberOfOutputUnits: 1
         });
 
+
         var setup = JSON.stringify({
+            batchSize : 1,
             Theta1: thetas.Theta1,
             Theta2: thetas.Theta2,
             Theta3: thetas.Theta3,
