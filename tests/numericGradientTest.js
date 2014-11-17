@@ -1,7 +1,7 @@
 var _ = require('lodash');
 var assert = require('assert');
-var la = require('../helpers/linear_algebra.helper');
-
+var La = require('../helpers/linear_algebra.helper');
+var la = new La();
 var cp = require('child_process');
 
 var path = require('path');
@@ -115,6 +115,7 @@ var computeDifferenceBetweenNumericlPartialDerivativeAndBackprop = function () {
         Theta2: thetas.Theta2,
         Theta3: thetas.Theta3,
         lambda: 1,
+        batchSize: 1,
         X: trainingSetInput,
         Y: trainingSetOutput
     }, function (err, r) {
@@ -136,6 +137,7 @@ var computeDifferenceBetweenNumericlPartialDerivativeAndBackprop = function () {
         Theta2: thetasMinusEpsilon.Theta2,
         Theta3: thetasMinusEpsilon.Theta3,
         lambda: 1,
+        batchSize: 1,
         X: trainingSetInput,
         Y: trainingSetOutput
     }, function (err, r) {
@@ -156,6 +158,7 @@ var computeDifferenceBetweenNumericlPartialDerivativeAndBackprop = function () {
         Theta2: thetasPlusEpsilon.Theta2,
         Theta3: thetasPlusEpsilon.Theta3,
         lambda: 1,
+        batchSize: 1,
         X: trainingSetInput,
         Y: trainingSetOutput
     }, function (err, r) {

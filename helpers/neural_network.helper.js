@@ -5,18 +5,16 @@ var _ = require('lodash');
 
 var computeGradientsWithCost = function (setup) {
 
-    var parsedSetup = JSON.parse(setup);
-
     var la = new La();
 
-    var Theta1 = parsedSetup.Theta1;
-    var Theta2 = parsedSetup.Theta2;
-    var Theta3 = parsedSetup.Theta3;
+    var Theta1 = setup.Theta1;
+    var Theta2 = setup.Theta2;
+    var Theta3 = setup.Theta3;
 
-    var batchSize = parsedSetup.batchSize;
-    var trainingSetInput = parsedSetup.X;
-    var trainingSetOutput = parsedSetup.Y;
-    var lambda = parsedSetup.lambda;
+    var batchSize = setup.batchSize;
+    var trainingSetInput = setup.X;
+    var trainingSetOutput = setup.Y;
+    var lambda = setup.lambda;
     var a1WithBias;
     var a2WithBias;
     var a3WithBias;
@@ -78,13 +76,13 @@ var computeGradientsWithCost = function (setup) {
 
     cost = cost / batchSize;
 
-    var result = JSON.stringify({
+    var result = {
         cost: cost,
         prediction: a4,
         D1 : D1,
         D2 : D2,
         D3 : D3
-    });
+    };
 
     return result
 };
@@ -96,9 +94,4 @@ process.on('message', function (setup) {
     var result = computeGradientsWithCost(setup);
 //        console.log();
     process.send(result);
-    result = null;
-    setup = null;
-    computeGradientsWithCost = null;
-    La = null;
-    _ = null;
 });

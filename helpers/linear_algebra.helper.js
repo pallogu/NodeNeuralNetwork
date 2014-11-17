@@ -1,15 +1,17 @@
 'use strict';
 
-var LinearAlgebraHelper = function LinearAlgebraHelper() {};
-
-
+var LinearAlgebraHelper = function LinearAlgebraHelper() {
+    if(!(this instanceof LinearAlgebraHelper)) {
+        return new LinearAlgebraHelper();
+    }
+};
 
 LinearAlgebraHelper.prototype.create2DMatrix =  function (nr, nc) {
-    var tmpMat = new Array(nr);
+    var tmpMat = Array(nr);
     var r = 0;
     var c = 0;
     for (r = 0; r < nr; r++) {
-        tmpMat[r] = new Array(nc);
+        tmpMat[r] = Array(nc);
         for (c = 0; c < nc; c++) {
             tmpMat[r][c] = 0;
         }
@@ -20,7 +22,7 @@ LinearAlgebraHelper.prototype.create2DMatrix =  function (nr, nc) {
 
 LinearAlgebraHelper.prototype.clone2dMatrix = function (mat) {
     var nr = mat.length;
-    var tmpMat = new Array(nr);
+    var tmpMat = Array(nr);
     var r = 0;
 
     for (r = 0; r < nr; r++) {
@@ -32,12 +34,12 @@ LinearAlgebraHelper.prototype.clone2dMatrix = function (mat) {
 
 LinearAlgebraHelper.prototype.random2DMatrix = function (nr, nc, epsilon) {
     var e = epsilon || 1;
-    var tmpMat = new Array(nr);
+    var tmpMat = Array(nr);
     var r = 0;
     var c = 0;
 
     for (r = 0; r < nr; r++) {
-        tmpMat[r] = new Array(nc);
+        tmpMat[r] = Array(nc);
         for (c = 0; c < nc; c++) {
             tmpMat[r][c] = Math.random() * 2 * e - e;
         }
@@ -48,7 +50,7 @@ LinearAlgebraHelper.prototype.random2DMatrix = function (nr, nc, epsilon) {
 
 LinearAlgebraHelper.prototype.randomVector = function (l, epsilon) {
     var e = epsilon || 1;
-    var tmpMat = new Array(l);
+    var tmpMat = Array(l);
     var index;
 
     for (index = 0; index < l; index++) {
@@ -63,10 +65,10 @@ LinearAlgebraHelper.prototype.add2DMatrices = function (mat1, mat2) {
     var nc = mat1[0].length;
     var r = 0;
     var c = 0;
-    var tmpMat = new Array(nr);
+    var tmpMat = Array(nr);
 
     for (r = 0; r < nr; r++) {
-        tmpMat[r] = new Array(nc);
+        tmpMat[r] = Array(nc);
         for (c = 0; c < nc; c++) {
             tmpMat[r][c] = mat1[r][c] + mat2[r][c];
         }
@@ -80,10 +82,10 @@ LinearAlgebraHelper.prototype.sub2DMatrices = function (mat1, mat2) {
     var nc = mat1[0].length;
     var r = 0;
     var c = 0;
-    var tmpMat = new Array(nr);
+    var tmpMat = Array(nr);
 
     for (r = 0; r < nr; r++) {
-        tmpMat[r] = new Array(nc);
+        tmpMat[r] = Array(nc);
         for (c = 0; c < nc; c++) {
             tmpMat[r][c] = mat1[r][c] - mat2[r][c];
         }
@@ -97,10 +99,10 @@ LinearAlgebraHelper.prototype.mul2DMatrixByScalar = function (mat, s) {
     var nc = mat[0].length;
     var r = 0;
     var c = 0;
-    var tmpMat = new Array(nr);
+    var tmpMat = Array(nr);
 
     for (r = 0; r < nr; r++) {
-        tmpMat[r] = new Array(nc);
+        tmpMat[r] = Array(nc);
         for (c = 0; c < nc; c++) {
             tmpMat[r][c] = mat[r][c] * s;
         }
@@ -112,7 +114,7 @@ LinearAlgebraHelper.prototype.mul2DMatrixByScalar = function (mat, s) {
 LinearAlgebraHelper.prototype.addBias =  function (mat) {
     var nr = mat.length;
     var r = 0;
-    var tmpMat = new Array(nr);
+    var tmpMat = Array(nr);
 
     for (r = 0; r < nr; r++) {
         tmpMat[r] = mat[r].slice(0);
@@ -131,10 +133,10 @@ LinearAlgebraHelper.prototype.computeZ = function (Theta, AWB) {
     var counter = 0;
     var sum = 0;
 
-    var tmpMat = new Array(nr);
+    var tmpMat = Array(nr);
 
     for (r = 0; r < nr; r++) {
-        tmpMat[r] = new Array(nc);
+        tmpMat[r] = Array(nc);
         for (c = 0; c < nc; c++) {
             sum = 0;
             for (counter = 0; counter < counterLength; counter++) {
@@ -156,10 +158,10 @@ LinearAlgebraHelper.prototype.computeNextLayer = function (Theta, AWB) {
     var counter = 0;
     var sum = 0;
 
-    var tmpMat = new Array(nr);
+    var tmpMat = Array(nr);
 
     for (r = 0; r < nr; r++) {
-        tmpMat[r] = new Array(nc);
+        tmpMat[r] = Array(nc);
         for (c = 0; c < nc; c++) {
             sum = 0;
             for (counter = 0; counter < counterLength; counter++) {
@@ -179,10 +181,10 @@ LinearAlgebraHelper.prototype.computeA = function (Z) {
     var nc = Z[0].length;
     var c = 0;
 
-    var tmpMat = new Array(nr);
+    var tmpMat = Array(nr);
 
     for (r = 0; r < nr; r++) {
-        tmpMat[r] = new Array(nc);
+        tmpMat[r] = Array(nc);
         for (c = 0; c < nc; c++) {
             tmpMat[r][c] = 1 / (1 + Math.exp(-1 * Z[r][c]));
         }
@@ -210,7 +212,7 @@ LinearAlgebraHelper.prototype.sumOfSquares = function (mat) {
 
 LinearAlgebraHelper.prototype.setFirstColumnToZeros = function (mat) {
     var nr = mat.length;
-    var tmpMat = new Array(nr);
+    var tmpMat = Array(nr);
     var r = 0;
 
     for (r = 0; r < nr; r++) {
@@ -230,10 +232,10 @@ LinearAlgebraHelper.prototype.computeD = function (Theta, D, AwithBias) {
     var counterLength = D[0].length;
     var counter = 0;
 
-    var tmpMat = new Array(nr);
+    var tmpMat = Array(nr);
 
     for (r = 0; r < nr; r++) {
-        tmpMat[r] = new Array(nc);
+        tmpMat[r] = Array(nc);
         for (c = 0; c < nc; c++) {
             sum = 0;
             for (counter = 0; counter < counterLength; counter++) {
@@ -252,10 +254,10 @@ LinearAlgebraHelper.prototype.computeDTensorSlice = function (AwithBias, D) {
     var nc = AwithBias.length;
     var r = 0;
     var c = 0;
-    var tmpArray = new Array(nr);
+    var tmpArray = Array(nr);
 
     for (r = 0; r < nr; r++) {
-        tmpArray[r] = new Array(nc);
+        tmpArray[r] = Array(nc);
         for (c = 0; c < nc; c++) {
             tmpArray[r][c] = AwithBias[c] * D[r];
         }
