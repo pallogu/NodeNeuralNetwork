@@ -141,6 +141,7 @@ _.extend(Neural_Network.prototype, {
         this.trainingSetOutput = options.trainingSetOutput;
         this.helpers = [];
         this.callback = callback;
+        this.momentumCoefficient = options.momentumCoefficient || 0.9;
 
         for(var k = 0; k < this.numberOfNodes; k++) {
             this.helpers.push(cp.fork(path.join(__dirname, 'helpers/neural_network.helper.js')));
@@ -156,17 +157,24 @@ _.extend(Neural_Network.prototype, {
         var la = La();
 
         reshuffleTrainingSet(self.trainingSetInput, self.trainingSetOutput);
+
         var setup = {
             thetas: thetas,
+            pastThetas: self.pastThetas,
             learningRate : this.learningRate,
             lambda: this.lambda,
             numberOfExamplesPerNode :  this.numberOfExamplesPerNode,
             trainingSetInput : this.trainingSetInput,
             trainingSetOutput : this.trainingSetOutput,
-            helpers : this.helpers
+            helpers : this.helpers,
+            momentumCoefficient : this.momentumCoefficient
         };
 
         var optimisationStepExecutor = new OptimisationStepExecutor();
+
+        var TMPTheta1 = la.clone2dMatrix(thetas.Theta1);
+        var TMPTheta2 = la.clone2dMatrix(thetas.Theta2);
+        var TMPTheta3 = la.clone2dMatrix(thetas.Theta3);
 
         optimisationStepExecutor.execute(setup, function (err, stepResult) {
 
@@ -183,6 +191,10 @@ _.extend(Neural_Network.prototype, {
             if (self.numberOfOptimizingIterations > self.maxNoOfIterations || cost < self.maxCostError || gradientSize < self.maxGradientSize) {
                 endTraining(thetasAfterOptimisationStep, cost);
             } else {
+                self.pastThetas = {};
+                self.pastThetas.Theta1 = TMPTheta1;
+                self.pastThetas.Theta2 = TMPTheta2;
+                self.pastThetas.Theta3 = TMPTheta3;
                 optimisationStepExecutor = null;
                 la = null;
                 setup = null;

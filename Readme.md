@@ -72,6 +72,7 @@ Following parameters are optional
 * maxNoOfIterations: (int) This parameter is used to stop training. The default value is Number.MAX_VALUE
 * model: (array) This is the starting point for gradient descent optimisation. If you do not provide this one will be randomly generated. This is useful if you already have a model and want to adjust it by new examples. The *train* method calls the callback with trained model as parameter.
 * verboseMode: (boolean) If set to true it will report the progress of learning
+* momentumCoefficient: (number) Set this parameter to smaller than 1 and bigger than 0. It should help with gradient descent.
 
 
 

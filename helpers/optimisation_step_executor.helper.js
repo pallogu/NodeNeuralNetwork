@@ -10,6 +10,7 @@ var OptimisationStepExecutor = function () {};
 OptimisationStepExecutor.prototype.execute = function (options, callback) {
 
     var thetas = options.thetas;
+    var pastThetas = options.pastThetas;
     var lambda = options.lambda;
     var learningRate = options.learningRate;
     var numberOfNodes = options.helpers.length;
@@ -17,6 +18,7 @@ OptimisationStepExecutor.prototype.execute = function (options, callback) {
     var trainingSetInput = options.trainingSetInput;
     var trainingSetOutput = options.trainingSetOutput;
     var helpers = options.helpers;
+    var momentumCoefficient = options.momentumCoefficient;
 
     var la = La();
 
@@ -68,9 +70,23 @@ OptimisationStepExecutor.prototype.execute = function (options, callback) {
     };
 
     var makeAStep = function () {
-        thetas.Theta1 = la.sub2DMatrices(thetas.Theta1, la.mul2DMatrixByScalar(D1, learningRate));
-        thetas.Theta2 = la.sub2DMatrices(thetas.Theta2, la.mul2DMatrixByScalar(D2, learningRate));
-        thetas.Theta3 = la.sub2DMatrices(thetas.Theta3, la.mul2DMatrixByScalar(D3, learningRate));
+        if(pastThetas) {
+            var DTheta1 = la.sub2DMatrices(thetas.Theta1, pastThetas.Theta1);
+            var DTheta2 = la.sub2DMatrices(thetas.Theta2, pastThetas.Theta2);
+            var DTheta3 = la.sub2DMatrices(thetas.Theta3, pastThetas.Theta3);
+
+            thetas.Theta1 = la.sub2DMatrices(thetas.Theta1, la.mul2DMatrixByScalar(D1, learningRate));
+            thetas.Theta2 = la.sub2DMatrices(thetas.Theta2, la.mul2DMatrixByScalar(D2, learningRate));
+            thetas.Theta3 = la.sub2DMatrices(thetas.Theta3, la.mul2DMatrixByScalar(D3, learningRate));
+
+            thetas.Theta1 = la.sub2DMatrices(thetas.Theta1, la.mul2DMatrixByScalar(DTheta1, -momentumCoefficient));
+            thetas.Theta2 = la.sub2DMatrices(thetas.Theta2, la.mul2DMatrixByScalar(DTheta2, -momentumCoefficient));
+            thetas.Theta3 = la.sub2DMatrices(thetas.Theta3, la.mul2DMatrixByScalar(DTheta3, -momentumCoefficient));
+        } else {
+            thetas.Theta1 = la.sub2DMatrices(thetas.Theta1, la.mul2DMatrixByScalar(D1, learningRate));
+            thetas.Theta2 = la.sub2DMatrices(thetas.Theta2, la.mul2DMatrixByScalar(D2, learningRate));
+            thetas.Theta3 = la.sub2DMatrices(thetas.Theta3, la.mul2DMatrixByScalar(D3, learningRate));
+        }
     };
 
     var computeThetaScalar = function () {
