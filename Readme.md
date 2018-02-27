@@ -46,10 +46,28 @@ Install from command line
 	}
 	
 	nn.train(setup, function (err, model) {
-	    nn.predict([1,1], function (err, probability){
-	        console.log('probability that y would be 	positive', probability);
-	        nn.exit();
-	    });
+        var predictionOptions;
+        predictionOptions = {
+            numberOfActivationUnitsL1: 4,
+            numberOfActivationUnitsL2: 4,
+            model: model
+        };
+        predictionOptions.inputVector = [0, 0];
+        nn.predict(predictionOptions, function(err, probability) {
+            console.log('probability that [0,0] would be positive', probability);
+        });
+        predictionOptions.inputVector = [0, 1];
+        nn.predict(predictionOptions, function(err, probability) {
+            console.log('probability that [0,1] would be positive', probability);
+        });
+        predictionOptions.inputVector = [1, 0];
+        nn.predict(predictionOptions, function(err, probability) {
+            console.log('probability that [1,0] would be positive', probability);
+        });
+        predictionOptions.inputVector = [1, 1];
+        nn.predict(predictionOptions, function(err, probability) {
+            console.log('probability that [1,1] would be positive', probability);
+        });
 	});
 
 ## Setup
